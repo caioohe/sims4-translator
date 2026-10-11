@@ -89,3 +89,5 @@ Se editar manualmente, salve seu dicionário antes de fechar para ele ter priori
 Veja [GEMINI_GOOGLE.md](GEMINI_GOOGLE.md) para configurar a chave Gemini, testar
 uma tradução sintética e ajustar o intervalo Google. O ZIP atualizado usa a mesma
 branch, com Gemini como provedor adicional.
+
+Microsoft Translator, configurações na aba Geral e salvamento das chaves: [MICROSOFT.md](MICROSOFT.md).

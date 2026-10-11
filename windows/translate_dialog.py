@@ -24,14 +24,14 @@ from utils.functions import text_to_stbl, text_to_edit
 from utils.constants import *
 
 
-def split_by_char_limit(items: List[MainRecord], char_limit: int = 256) -> list:
+def split_by_char_limit(items: List[MainRecord], char_limit: int = 256, max_items: int = 50) -> list:
     result = []
     current_chunk = []
     current_length = 0
 
     for item in items:
         text_length = len(item.source)
-        if current_length + text_length > char_limit or len(current_chunk) >= 50:
+        if current_length + text_length > char_limit or len(current_chunk) >= max_items:
             if current_chunk:
                 result.append(current_chunk)
             current_chunk = [item]
@@ -65,8 +65,9 @@ class BatchTranslateWorker(QRunnable):
     def run(self):
         try:
             texts = [text_to_edit(item.source) for item in self.chunk]
-            if self.engine.lower() in ('deepl', 'gemini'):
-                method = translator.translate_gemini_many if self.engine.lower() == 'gemini' else translator.translate_many
+            if self.engine.lower() in ('deepl', 'gemini', 'microsoft'):
+                method = {'gemini':translator.translate_gemini_many, 'microsoft':translator.translate_microsoft_many,
+                          'deepl':translator.translate_many}[self.engine.lower()]
                 response = method(texts, self.cancel)
                 values = response.text
             else:
@@ -144,7 +145,7 @@ class TranslateDialog(QDialog, Ui_TranslateDialog):
 
     def check_api(self):
         api = self.cb_api.currentText().lower()
-        if api in ('deepl', 'gemini'):
+        if api in ('deepl', 'gemini', 'microsoft'):
             self.rb_fast.setEnabled(True)
         else:
             self.rb_fast.setEnabled(False)
@@ -171,7 +172,13 @@ class TranslateDialog(QDialog, Ui_TranslateDialog):
         self.btn_translate.setText(interface.text('TranslateDialog', 'Stop translate'))
 
         if self.rb_fast.isChecked():
-            chunk_items = split_by_char_limit(items, 16000)
+            try:
+                max_items = max(1, min(100, int(config.value('api', 'batch_size') or 50)))
+            except (TypeError, ValueError):
+                max_items = 50
+            if self.cb_api.currentText().lower() == 'deepl':
+                max_items = min(50, max_items)
+            chunk_items = split_by_char_limit(items, 16000, max_items)
         else:
             chunk_items = items
 

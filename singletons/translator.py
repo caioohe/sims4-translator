@@ -5,6 +5,7 @@ import json
 from xml.etree.ElementTree import ParseError
 from utils.translation import protect, restore, deepl_transport, TranslationCancelled
 from utils.gemini import api_key as gemini_key, translate_gemini
+from utils.microsoft import api_key as microsoft_key, translate_microsoft
 from utils.google_translate import translate_google
 from utils.http_policy import google_transport
 from collections import namedtuple
@@ -27,6 +28,8 @@ class Translator:
             engines.append('DeepL')
         if gemini_key(config):
             engines.append('Gemini')
+        if microsoft_key(config):
+            engines.append('Microsoft')
         return engines
 
     @property
@@ -34,7 +37,10 @@ class Translator:
         return len(self.engines) > 0
 
     def translate(self, engine: str, text: str, cancel=None) -> Response:
-        if engine.lower() in ('deepl', 'gemini'):
+        if engine.lower() in ('deepl', 'gemini', 'microsoft'):
+            if engine.lower() == 'microsoft':
+                response = self.translate_microsoft_many([text], cancel)
+                return Response(response.status_code, response.text[0] if response.status_code == 200 else response.text)
             response = (self.translate_gemini_many([text], cancel) if engine.lower() == 'gemini'
                         else self.translate_many([text], cancel))
             return Response(response.status_code, response.text[0] if response.status_code == 200 else response.text)
@@ -78,6 +84,10 @@ class Translator:
             return Response(503, 'DeepL connection failed or timed out after retries. You can resume the untranslated strings.')
         except (KeyError, IndexError, TypeError, ValueError, ParseError) as exc:
             return Response(422, f'Invalid DeepL response: {exc}')
+
+    def translate_microsoft_many(self, texts, cancel=None):
+        return Response(*translate_microsoft(config, texts,
+            config.value('translation', 'source'), config.value('translation', 'destination'), cancel))
 
     def translate_gemini_many(self, texts, cancel=None):
         return Response(*translate_gemini(config, texts,

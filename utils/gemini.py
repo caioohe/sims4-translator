@@ -45,8 +45,8 @@ def translate_gemini(config, texts, source, destination, cancel=None):
     model = (config.value('api', 'gemini_model') or DEFAULT_MODEL).strip()
     if not re.fullmatch(r'gemini-[a-zA-Z0-9][a-zA-Z0-9._-]{0,99}', model):
         return 400, 'Invalid Gemini model name. Use a model ID such as gemini-3.8-flash.'
-    if not 1 <= len(texts) <= 50 or sum(len(t) for t in texts) > 16000:
-        return 413, 'Gemini batch exceeds 50 strings or 16000 characters. Select fewer strings or line-by-line mode.'
+    if not 1 <= len(texts) <= 100 or sum(len(t) for t in texts) > 16000:
+        return 413, 'Gemini batch exceeds 100 strings or 16000 characters. Select fewer strings or line-by-line mode.'
     try:
         prepared = [protect_sims(text) for text in texts]
         records = [{'id':i, 'text':entry[0]} for i, entry in enumerate(prepared)]

@@ -52,6 +52,8 @@ jobs:
           Copy-Item fonts dist/Sims4Translator/fonts -Recurse
           Copy-Item LICENSE dist/Sims4Translator/LICENSE
           Copy-Item docs/WINDOWS.md dist/Sims4Translator/README-Windows.md
+          Copy-Item docs/MICROSOFT.md dist/Sims4Translator/MICROSOFT.md
+          Copy-Item docs/GEMINI_GOOGLE.md dist/Sims4Translator/GEMINI_GOOGLE.md
           if (Test-Path dist/Sims4Translator/prefs/config.xml) { throw 'Private config included in build' }
           if (Test-Path dist/Sims4Translator/prefs/recovery) { throw 'Private recovery included in build' }
       - uses: actions/upload-artifact@v4

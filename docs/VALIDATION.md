@@ -32,3 +32,5 @@ real. Google usa mocks e uma tentativa real sintética terminou em ReadTimeout.
 A atualização protege gênero, tokens, IDs e respostas incompletas, acrescenta
 controle de frequência Google e botão de teste Gemini. Consulte o PR para o run
 Windows correspondente ao commit final; o run anterior não valida código novo.
+
+Microsoft Translator, configurações na aba Geral e salvamento das chaves: [MICROSOFT.md](MICROSOFT.md).

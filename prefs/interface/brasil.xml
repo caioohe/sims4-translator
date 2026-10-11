@@ -506,7 +506,25 @@
       <source>Google uses an unofficial web page. A longer interval can reduce 429 errors, but cannot guarantee access. Stop on browser verification.</source>
       <translation>O Google usa uma página web não oficial. Aumentar o intervalo pode reduzir o erro 429, mas não garante acesso. A tradução pausa se houver verificação no navegador.</translation>
     </string>
-  </context>
+      <string>
+      <source>Microsoft Translator API</source>
+      <translation>API do Microsoft Translator</translation>
+    </string>
+    <string>
+      <source>Create an Azure Translator resource using the F0 free tier. Enter its key and region. Paid tiers are billed separately.</source>
+      <translation>Crie um recurso Translator no Azure usando o plano gratuito F0. Informe a chave e a região. Planos pagos têm cobrança separada.</translation>
+    </string>
+    <string>
+      <source>Testing translation...</source>
+      <translation>Testando tradução...</translation>
+    </string>
+    <string>
+      <source>Could not save settings. Extract the full ZIP to a writable folder and try again.</source>
+      <translation>Não foi possível salvar as configurações. Extraia todo o ZIP para uma pasta com permissão de escrita e tente novamente.</translation>
+    </string>
+    <string><source>Texts per batch</source><translation>Textos por lote</translation></string>
+    <string><source>Up to 100 for Gemini and Microsoft; DeepL is limited to 50. Long texts form smaller batches. Larger batches may take longer.</source><translation>Até 100 para Gemini e Microsoft; DeepL permite no máximo 50. Textos longos formam lotes menores. Lotes maiores podem demorar mais.</translation></string>
+</context>
   <context name="ReplaceDialog">
     <string>
       <source>Search and replace</source>

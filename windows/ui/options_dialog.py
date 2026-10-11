@@ -2,7 +2,7 @@
 
 from PySide6.QtCore import QMetaObject, Qt
 from PySide6.QtWidgets import QWidget, QAbstractItemView, QCheckBox, QComboBox, QGroupBox, QHBoxLayout, QLabel, \
-    QLineEdit, QPushButton, QDoubleSpinBox, QTableView, QVBoxLayout, QTabWidget, QHeaderView
+    QLineEdit, QPushButton, QDoubleSpinBox, QSpinBox, QTableView, QVBoxLayout, QTabWidget, QHeaderView, QScrollArea
 
 
 class Ui_OptionsDialog(object):
@@ -15,18 +15,19 @@ class Ui_OptionsDialog(object):
 
         self.tab_general = QWidget()
         self.tab_dictionaries = QWidget()
-        self.tab_ai = QWidget()
+        self.general_scroll = QScrollArea()
+        self.general_scroll.setWidgetResizable(True)
+        self.general_scroll.setWidget(self.tab_general)
 
         self.tabs = QTabWidget(OptionsDialog)
-        self.tabs.addTab(self.tab_general, '')
+        self.tabs.addTab(self.general_scroll, '')
         self.tabs.addTab(self.tab_dictionaries, '')
-        self.tabs.addTab(self.tab_ai, '')
 
         layout.addWidget(self.tabs)
 
         self.build_general_tab()
         self.build_dictionaries_tab()
-        self.build_ai_tab()
+
 
         QMetaObject.connectSlotsByName(OptionsDialog)
 
@@ -146,11 +147,20 @@ class Ui_OptionsDialog(object):
 
         vlayout.addWidget(self.gb_deepl)
 
+        self.gb_batch = QGroupBox(self.tab_general)
+        batch_layout = QVBoxLayout(self.gb_batch)
+        self.spin_batch_size = QSpinBox(self.gb_batch)
+        self.spin_batch_size.setRange(1, 100)
+        self.lbl_batch_hint = QLabel(self.gb_batch)
+        self.lbl_batch_hint.setWordWrap(True)
+        batch_layout.addWidget(self.lbl_batch_hint)
+        batch_layout.addWidget(self.spin_batch_size)
+        vlayout.addWidget(self.gb_batch)
+        self.build_ai_tab(vlayout)
         vlayout.addStretch()
 
-    def build_ai_tab(self):
-        layout = QVBoxLayout(self.tab_ai)
-        self.gb_gemini = QGroupBox(self.tab_ai)
+    def build_ai_tab(self, layout):
+        self.gb_gemini = QGroupBox(self.tab_general)
         gemini_layout = QVBoxLayout(self.gb_gemini)
         self.txt_gemini_key = QLineEdit(self.gb_gemini)
         self.txt_gemini_key.setEchoMode(QLineEdit.EchoMode.Password)
@@ -176,7 +186,7 @@ class Ui_OptionsDialog(object):
         gemini_layout.addLayout(buttons)
         gemini_layout.addWidget(self.lbl_gemini_status)
         layout.addWidget(self.gb_gemini)
-        self.gb_google = QGroupBox(self.tab_ai)
+        self.gb_google = QGroupBox(self.tab_general)
         google_layout = QVBoxLayout(self.gb_google)
         self.lbl_google_hint = QLabel(self.gb_google)
         self.lbl_google_hint.setWordWrap(True)
@@ -187,7 +197,31 @@ class Ui_OptionsDialog(object):
         google_layout.addWidget(self.lbl_google_hint)
         google_layout.addWidget(self.spin_google_interval)
         layout.addWidget(self.gb_google)
-        layout.addStretch()
+        self.gb_microsoft = QGroupBox(self.tab_general)
+        ms_layout = QVBoxLayout(self.gb_microsoft)
+        self.txt_microsoft_key = QLineEdit(self.gb_microsoft)
+        self.txt_microsoft_key.setEchoMode(QLineEdit.EchoMode.Password)
+        self.txt_microsoft_key.setPlaceholderText('Azure Translator API key / AZURE_TRANSLATOR_KEY')
+        self.txt_microsoft_region = QLineEdit(self.gb_microsoft)
+        self.txt_microsoft_region.setPlaceholderText('Azure region, e.g. brazilsouth; blank for a global resource')
+        self.lbl_microsoft_hint = QLabel(self.gb_microsoft)
+        self.lbl_microsoft_hint.setWordWrap(True)
+        self.btn_microsoft_key = QPushButton(self.gb_microsoft)
+        self.btn_microsoft_test = QPushButton(self.gb_microsoft)
+        self.btn_microsoft_key.setAutoDefault(False)
+        self.btn_microsoft_test.setAutoDefault(False)
+        self.lbl_microsoft_status = QLabel(self.gb_microsoft)
+        self.lbl_microsoft_status.setWordWrap(True)
+        self.lbl_microsoft_status.setTextFormat(Qt.TextFormat.PlainText)
+        buttons = QHBoxLayout()
+        buttons.addWidget(self.btn_microsoft_key)
+        buttons.addWidget(self.btn_microsoft_test)
+        ms_layout.addWidget(self.txt_microsoft_key)
+        ms_layout.addWidget(self.txt_microsoft_region)
+        ms_layout.addWidget(self.lbl_microsoft_hint)
+        ms_layout.addLayout(buttons)
+        ms_layout.addWidget(self.lbl_microsoft_status)
+        layout.addWidget(self.gb_microsoft)
 
     def build_dictionaries_tab(self):
         vlayout = QVBoxLayout(self.tab_dictionaries)

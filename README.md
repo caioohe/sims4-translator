@@ -51,3 +51,5 @@ uses its unofficial HTML interface. No proxy or IP rotation is implemented.
 Never commit `prefs/config.xml`, `prefs/recovery/`, dictionaries or private mods.
 
 - [Gemini integration and Google 429 investigation (PT-BR)](docs/GEMINI_GOOGLE.md)
+
+Microsoft Translator, configurações na aba Geral e salvamento das chaves: [docs/MICROSOFT.md](docs/MICROSOFT.md).

@@ -159,3 +159,47 @@ def test_options_gemini_settings_and_async_local_test(qapp, monkeypatch):
 def translator_for_test():
     from singletons.translator import translator
     return translator
+
+
+def test_options_microsoft_general_tab_and_save(qapp,monkeypatch):
+    from storages.packages import PackagesStorage
+    from storages.dictionaries import DictionariesStorage
+    from windows.main_window import MainWindow
+    from windows.options_dialog import OptionsDialog
+    from singletons.config import config
+    monkeypatch.setattr(app_state,'packages_storage',PackagesStorage())
+    monkeypatch.setattr(app_state,'dictionaries_storage',DictionariesStorage())
+    changed=[];saved=Mock()
+    monkeypatch.setattr(config,'set_value',lambda section,option,value:changed.append((section,option,value)))
+    monkeypatch.setattr(config,'save',saved)
+    window=MainWindow();dialog=OptionsDialog(window)
+    dialog.spin_batch_size.setValue(100)
+    assert ('api','batch_size',100) in changed
+    assert dialog.tabs.count() == 2
+    assert dialog.general_scroll.widget() is dialog.tab_general
+    assert dialog.tab_general.isAncestorOf(dialog.gb_microsoft)
+    assert dialog.tab_general.isAncestorOf(dialog.gb_gemini)
+    dialog.txt_microsoft_key.setText(' synthetic-key ')
+    dialog.txt_microsoft_region.setText('brazilsouth')
+    assert ('api','microsoft_key','synthetic-key') in changed
+    assert ('api','microsoft_region','brazilsouth') in changed
+    mock=Mock(return_value=Response(200,'Olá {0.SimFirstName}!'))
+    monkeypatch.setattr(translator_for_test(),'translate',mock)
+    dialog.test_gemini('Microsoft')
+    pump(qapp,lambda:dialog._gemini_worker is None)
+    assert dialog.lbl_microsoft_status.text() == 'Olá {0.SimFirstName}!'
+    assert mock.call_args.args[:2] == ('Microsoft','Hello {0.SimFirstName}!')
+    dialog.show();dialog.close()
+    saved.assert_called_once()
+    window.close()
+
+
+def test_hundred_text_batch_split_still_respects_char_limit():
+    from storages.records import MainRecord
+    from utils.constants import RECORD_MAIN_SOURCE
+    records=[]
+    for i in range(101):
+        record=MainRecord(*([None]*14));record[RECORD_MAIN_SOURCE]='hello';records.append(record)
+    assert [len(chunk) for chunk in split_by_char_limit(records,16000,100)] == [100,1]
+    assert [len(chunk) for chunk in split_by_char_limit(records,16000,50)] == [50,50,1]
+    assert all(sum(len(record.source) for record in chunk) <= 256 for chunk in split_by_char_limit(records,256,100))

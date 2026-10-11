@@ -2,7 +2,7 @@
 
 from PySide6.QtCore import Qt, QCoreApplication, QObject, QTimer, QAbstractTableModel, \
     Signal, Slot, QThreadPool, QRunnable
-from PySide6.QtWidgets import QHeaderView, QStyledItemDelegate, QDialog
+from PySide6.QtWidgets import QHeaderView, QStyledItemDelegate, QDialog, QMessageBox
 from PySide6.QtGui import QColor, QDesktopServices
 from PySide6.QtCore import QUrl
 from threading import Event
@@ -166,17 +166,18 @@ class GeminiTestSignals(QObject):
 
 
 class GeminiTestWorker(QRunnable):
-    def __init__(self, cancel):
+    def __init__(self, cancel, engine='Gemini'):
         super().__init__()
         self.cancel = cancel
+        self.engine = engine
         self.signals = GeminiTestSignals()
 
     def run(self):
         from singletons.translator import Response
         try:
-            response = translator.translate('Gemini', 'Hello {0.SimFirstName}!', self.cancel)
+            response = translator.translate(self.engine, 'Hello {0.SimFirstName}!', self.cancel)
         except Exception:
-            response = Response(500, 'Gemini test failed. Original files were not modified.')
+            response = Response(500, 'Translation test failed. Original files were not modified.')
         self.signals.result.emit(response)
 
 
@@ -208,8 +209,19 @@ class OptionsDialog(QDialog, Ui_OptionsDialog):
         self.cb_experemental.clicked.connect(self.checkbox_click)
         self.cb_strong.clicked.connect(self.checkbox_click)
 
+        try:
+            self.spin_batch_size.setValue(int(config.value('api', 'batch_size') or 50))
+        except (TypeError, ValueError):
+            self.spin_batch_size.setValue(50)
+        self.spin_batch_size.valueChanged.connect(lambda value: config.set_value('api', 'batch_size', value))
         self.txt_path.setText(config.value('dictionaries', 'gamepath'))
         self.txt_deepl_key.setText(config.value('api', 'deepl_key') or '')
+        self.txt_microsoft_key.setText(config.value('api', 'microsoft_key') or '')
+        self.txt_microsoft_region.setText(config.value('api', 'microsoft_region') or '')
+        self.txt_microsoft_key.textChanged.connect(lambda: config.set_value('api', 'microsoft_key', self.txt_microsoft_key.text().strip()))
+        self.txt_microsoft_region.textChanged.connect(lambda: config.set_value('api', 'microsoft_region', self.txt_microsoft_region.text().strip()))
+        self.btn_microsoft_key.clicked.connect(lambda: QDesktopServices.openUrl(QUrl('https://portal.azure.com/#create/Microsoft.CognitiveServicesTextTranslation')))
+        self.btn_microsoft_test.clicked.connect(lambda: self.test_gemini('Microsoft'))
         self.txt_gemini_key.setText(config.value('api', 'gemini_key') or '')
         self.cb_gemini_model.setCurrentText(config.value('api', 'gemini_model') or DEFAULT_MODEL)
         try:
@@ -279,10 +291,15 @@ class OptionsDialog(QDialog, Ui_OptionsDialog):
         self.label_source.setText(interface.text('OptionsDialog', 'Source'))
         self.label_dest.setText(interface.text('OptionsDialog', 'Destination'))
         self.btn_build.setText(interface.text('OptionsDialog', 'Build dictionaries'))
-        self.tabs.setTabText(self.tabs.indexOf(self.tab_general), interface.text('OptionsDialog', 'General'))
+        self.tabs.setTabText(self.tabs.indexOf(self.general_scroll), interface.text('OptionsDialog', 'General'))
         self.tabs.setTabText(self.tabs.indexOf(self.tab_dictionaries), interface.text('OptionsDialog', 'Dictionaries'))
+        self.gb_batch.setTitle(interface.text('OptionsDialog', 'Texts per batch'))
+        self.lbl_batch_hint.setText(interface.text('OptionsDialog', 'Up to 100 for Gemini and Microsoft; DeepL is limited to 50. Long texts form smaller batches. Larger batches may take longer.'))
         self.gb_deepl.setTitle(interface.text('OptionsDialog', 'DeepL API key'))
-        self.tabs.setTabText(self.tabs.indexOf(self.tab_ai), interface.text('OptionsDialog', 'Gemini and Google'))
+        self.gb_microsoft.setTitle(interface.text('OptionsDialog', 'Microsoft Translator API'))
+        self.lbl_microsoft_hint.setText(interface.text('OptionsDialog', 'Create an Azure Translator resource using the F0 free tier. Enter its key and region. Paid tiers are billed separately.'))
+        self.btn_microsoft_key.setText(interface.text('OptionsDialog', 'Get API key'))
+        self.btn_microsoft_test.setText(interface.text('OptionsDialog', 'Test translation'))
         self.gb_gemini.setTitle(interface.text('OptionsDialog', 'Gemini API key and model'))
         self.lbl_gemini_hint.setText(interface.text('OptionsDialog', 'Use an API key from Google AI Studio. Free Tier has limits; your Gemini app subscription does not determine the API project tier. Model availability varies.'))
         self.btn_gemini_key.setText(interface.text('OptionsDialog', 'Get API key'))
@@ -345,15 +362,22 @@ class OptionsDialog(QDialog, Ui_OptionsDialog):
     def change_google_interval(self):
         config.set_value('api', 'google_interval', self.spin_google_interval.value())
 
-    def test_gemini(self):
+    def test_gemini(self, engine='Gemini'):
+        if not isinstance(engine, str):
+            engine = 'Gemini'
         if self._gemini_worker is not None:
             return
+        self._test_engine = engine
         self._gemini_cancel.clear()
-        self.lbl_gemini_status.setText(interface.text('OptionsDialog', 'Testing Gemini translation...'))
+        label = self.lbl_microsoft_status if engine == 'Microsoft' else self.lbl_gemini_status
+        label.setText(interface.text('OptionsDialog', 'Testing translation...'))
+        self.btn_microsoft_test.setEnabled(False)
+        self.txt_microsoft_key.setEnabled(False)
+        self.txt_microsoft_region.setEnabled(False)
         self.btn_gemini_test.setEnabled(False)
         self.txt_gemini_key.setEnabled(False)
         self.cb_gemini_model.setEnabled(False)
-        worker = GeminiTestWorker(self._gemini_cancel)
+        worker = GeminiTestWorker(self._gemini_cancel, engine)
         self._gemini_worker = worker
         worker.signals.result.connect(self.gemini_test_result)
         self._gemini_pool.start(worker)
@@ -361,10 +385,14 @@ class OptionsDialog(QDialog, Ui_OptionsDialog):
     @Slot(object)
     def gemini_test_result(self, response):
         self._gemini_worker = None
+        self.btn_microsoft_test.setEnabled(True)
+        self.txt_microsoft_key.setEnabled(True)
+        self.txt_microsoft_region.setEnabled(True)
         self.btn_gemini_test.setEnabled(True)
         self.txt_gemini_key.setEnabled(True)
         self.cb_gemini_model.setEnabled(True)
-        self.lbl_gemini_status.setText(response.text)
+        label = self.lbl_microsoft_status if self._test_engine == 'Microsoft' else self.lbl_gemini_status
+        label.setText(response.text)
         if self._gemini_closing:
             self._gemini_closing = False
             self.close()
@@ -375,6 +403,13 @@ class OptionsDialog(QDialog, Ui_OptionsDialog):
             self._gemini_cancel.set()
             event.ignore()
         else:
+            try:
+                config.save()
+            except OSError:
+                QMessageBox.warning(self, interface.text('OptionsDialog', 'Options'),
+                    interface.text('OptionsDialog', 'Could not save settings. Extract the full ZIP to a writable folder and try again.'))
+                event.ignore()
+                return
             super().closeEvent(event)
 
     def change_path(self):

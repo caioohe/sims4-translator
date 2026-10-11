@@ -156,7 +156,7 @@ def test_environment_key_and_missing_key(monkeypatch, setup):
 
 def test_invalid_model_and_limits_no_network(setup):
     settings,_=setup
-    assert translator.translate_gemini_many(['x']*51).status_code == 413
+    assert translator.translate_gemini_many(['x']*101).status_code == 413
     assert translator.translate_gemini_many(['x'*16001]).status_code == 413
     settings[('api','gemini_model')]='../../host?key=secret'
     assert translator.translate('Gemini','hi').status_code == 400
@@ -192,3 +192,10 @@ def test_portugal_language_is_distinct(monkeypatch,setup):
         return reply(body=generated([{'id':0,'text':'Olá'}]))
     monkeypatch.setattr(requests,'post',Mock(side_effect=post))
     assert translator.translate('Gemini','hello').status_code == 200
+
+
+def test_one_hundred_texts_allowed(monkeypatch):
+    entries=[{'id':i,'text':'Olá'} for i in range(100)]
+    monkeypatch.setattr(requests,'post',Mock(return_value=reply(body=generated(entries))))
+    result=translator.translate_gemini_many(['Hello']*100)
+    assert result.status_code == 200 and result.text == ['Olá']*100
