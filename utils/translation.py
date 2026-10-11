@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 import requests
 
-TOKEN = re.compile(r"{[^{}]*}|<[^>]+>|\\[nr]")
+TOKEN = re.compile(r"{[^{}]*}|<[^>]+>|\\[nr]|\r\n|\n|\r")
 
 
 def protect(text, xml=False):

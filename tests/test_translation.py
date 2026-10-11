@@ -157,3 +157,10 @@ def test_actual_json_wire_size_checked(api):
     # requests JSON defaults escape non-ASCII: 23k Han characters exceed 128 KiB.
     assert translator.translate_many(['漢' * 23000]).status_code == 413
     assert requests.post.call_count == 0
+
+
+def test_actual_linebreaks_are_protected():
+    text = 'First\nSecond\r\nThird\rFourth'
+    encoded, ph = protect(text, xml=True)
+    assert '\n' not in encoded and '\r' not in encoded
+    assert restore(encoded, ph, xml=True) == text

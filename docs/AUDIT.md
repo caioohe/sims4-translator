@@ -116,7 +116,7 @@ infinita. Intervalo de 0,5s é uma política conservadora local, não limite ofi
 
 A preservação de placeholders detecta remoção/duplicação/alteração e rejeita o lote
 sem gravar tradução corrompida. Não demonstra qualidade semântica nem detecta toda
-reordenação de tokens. Tags e conteúdo `{...}` são preservados integralmente.
+reordenação de tokens. Tags, quebras de linha e conteúdo `{...}` são preservados integralmente.
 Textos por gênero `{M0...}`/`{F0...}` **não são traduzidos internamente** nesta etapa;
 não existe motor gramatical de gênero no upstream. Traduzir esse conteúdo com
 segurança exige parser dedicado e exemplos reais, fora desta correção focalizada.
