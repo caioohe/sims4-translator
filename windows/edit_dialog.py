@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from PySide6.QtCore import Qt, QObject, Slot
+from PySide6.QtCore import Qt, QObject, Signal, Slot, QRunnable, QThreadPool
+from threading import Event
 from PySide6.QtWidgets import QApplication, QDialog, QMenu
 from PySide6.QtGui import QIcon
 
@@ -19,6 +20,25 @@ from utils.functions import text_to_edit, text_to_stbl
 from utils.constants import *
 
 
+class EditorTranslateSignals(QObject):
+    result = Signal(object)
+
+
+class EditorTranslateWorker(QRunnable):
+    def __init__(self, engine, text, cancel):
+        super().__init__()
+        self.engine, self.text, self.cancel = engine, text, cancel
+        self.signals = EditorTranslateSignals()
+
+    def run(self):
+        from singletons.translator import Response
+        try:
+            response = translator.translate(self.engine, self.text, self.cancel)
+        except Exception:
+            response = Response(500, 'Unexpected translation failure; original text retained.')
+        self.signals.result.emit(response)
+
+
 class EditDialog(QDialog, Ui_EditDialog):
 
     def __init__(self, parent=None):
@@ -28,6 +48,10 @@ class EditDialog(QDialog, Ui_EditDialog):
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
 
         self.item = None
+        self._translation_pool = QThreadPool(self)
+        self._translation_cancel = Event()
+        self._translation_worker = None
+        self._translation_closing = False
 
         self.tableview.clicked.connect(self.tableview_click)
         self.tableview.customContextMenuRequested.connect(self.generate_item_context_menu)
@@ -149,8 +173,25 @@ class EditDialog(QDialog, Ui_EditDialog):
     def translate_click(self):
         self.lbl_status.setStyleSheet('')
         self.lbl_status.setText(interface.text('EditWindow', 'Loading...'))
-        QApplication.processEvents()
-        response = translator.translate(self.cb_api.currentText(), self.item.source)
+        self._translation_cancel.clear()
+        self.btn_translate.setEnabled(False)
+        self.btn_ok.setEnabled(False)
+        self.cb_api.setEnabled(False)
+        worker = EditorTranslateWorker(self.cb_api.currentText(), self.item.source, self._translation_cancel)
+        self._translation_worker = worker
+        worker.signals.result.connect(self._translation_result)
+        self._translation_pool.start(worker)
+
+    @Slot(object)
+    def _translation_result(self, response):
+        self._translation_worker = None
+        self.btn_translate.setEnabled(True)
+        self.btn_ok.setEnabled(True)
+        self.cb_api.setEnabled(True)
+        if self._translation_closing:
+            self._translation_closing = False
+            self.close()
+            return
         if response.status_code == 200:
             self.txt_translate.setPlainText(text_to_edit(response.text))
             self.lbl_status.setText('')
@@ -158,6 +199,14 @@ class EditDialog(QDialog, Ui_EditDialog):
             color = dark.TEXT_ERROR if config.value('interface', 'theme') == 'dark' else light.TEXT_ERROR
             self.lbl_status.setStyleSheet(f'color: {color};')
             self.lbl_status.setText(response.text)
+
+    def closeEvent(self, event):
+        if self._translation_worker is not None:
+            self._translation_closing = True
+            self._translation_cancel.set()
+            event.ignore()
+        else:
+            super().closeEvent(event)
 
     def cancel_click(self):
         self.close()

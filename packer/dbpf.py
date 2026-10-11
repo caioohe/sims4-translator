@@ -3,6 +3,8 @@
 import io
 import zlib
 import contextlib
+import os
+import tempfile
 from collections import namedtuple
 
 from packer.resource import Resource, ResourceID
@@ -215,10 +217,10 @@ class DbpfPackage:
         if self._index_cache is None:
             self._index_cache = {}
             for entry in self.package.get_index(self):
-                if entry.locator.deleted or code and entry.id.type != code:
+                if entry.locator.deleted:
                     continue
                 self._index_cache[entry.id] = entry
-        return self._index_cache.keys()
+        return [rid for rid in self._index_cache if code is None or rid.type == code]
 
     def search_stbl(self):
         return self.search(0x220557DA)
@@ -266,11 +268,18 @@ class DbpfPackage:
     @staticmethod
     @contextlib.contextmanager
     def write(name):
-        dbfile = DbpfPackage(name, mode='w')
+        directory = os.path.dirname(os.path.abspath(name))
+        fd, temporary = tempfile.mkstemp(prefix='.ts4-export-', suffix='.package', dir=directory)
+        os.close(fd)
+        dbfile = DbpfPackage(temporary, mode='w')
         try:
             yield dbfile
-        finally:
             dbfile.commit()
+            os.replace(temporary, name)
+        finally:
+            dbfile.close()
+            if os.path.exists(temporary):
+                os.unlink(temporary)
 
 
 def decode_ref_pack(ibuf):

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import shutil
 import json
 import xml.etree.ElementTree as ElementTree
 from json import JSONDecodeError
@@ -287,8 +288,13 @@ class Container:
 
     def backup(self, path: str = None) -> str:
         backup = (path if path else self.path) + '.backup'
-        os.rename(self.path, backup)
-        return backup
+        candidate = backup
+        suffix = 1
+        while os.path.exists(candidate):
+            candidate = f'{backup}.{suffix}'
+            suffix += 1
+        shutil.copy2(self.path, candidate)
+        return candidate
 
     def modify(self, state: bool = True) -> None:
         self.modified = state

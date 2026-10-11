@@ -42,7 +42,7 @@ class Packer:
             self.seek = saved
 
     def _get_int(self, size, signed=False):
-        return int.from_bytes(self.raw.read(size), 'little', signed=signed)
+        return int.from_bytes(self.get_raw_bytes(size), 'little', signed=signed)
 
     def get_byte(self):
         return self._get_int(1, False)
@@ -108,7 +108,10 @@ class Packer:
         self._put_int(i, 8, False)
 
     def get_raw_bytes(self, count):
-        return self.raw.read(count)
+        data = self.raw.read(count)
+        if len(data) != count:
+            raise ValueError('Truncated binary data')
+        return data
 
     def put_raw_bytes(self, bstr):
         self.raw.write(bstr)

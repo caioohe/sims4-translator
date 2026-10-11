@@ -36,3 +36,16 @@ This project uses the following fonts:
 ## Additional Credits
 
 The idea is taken from the app [xTranslator](https://www.nexusmods.com/skyrimspecialedition/mods/134).
+## Reliability fork
+
+This public fork derives from [voky1/sims4-translator](https://github.com/voky1/sims4-translator).
+Original MIT license and credits are preserved. Work is reviewed on
+`fix/translation-reliability` before merging into `main`.
+
+- [Technical audit and Wisdom comparison (PT-BR)](docs/AUDIT.md)
+- [Windows setup, build, tests and recovery (PT-BR)](docs/WINDOWS.md)
+- [Validation results](docs/VALIDATION.md)
+
+DeepL uses the official API with bounded retries and native batches. Google still
+uses its unofficial HTML interface. No proxy or IP rotation is implemented.
+Never commit `prefs/config.xml`, `prefs/recovery/`, dictionaries or private mods.

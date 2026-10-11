@@ -96,9 +96,13 @@ def save_binary(filename: str = '') -> str:
 
 
 def create_temporary_copy(path: str) -> str:
-    temp_dir = tempfile.gettempdir()
-    temp_path = os.path.join(temp_dir, os.path.basename(path))
-    shutil.copy2(path, temp_path)
+    fd, temp_path = tempfile.mkstemp(suffix='.package')
+    os.close(fd)
+    try:
+        shutil.copy2(path, temp_path)
+    except OSError:
+        os.unlink(temp_path)
+        raise
     return temp_path
 
 

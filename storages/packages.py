@@ -28,6 +28,7 @@ from singletons.state import app_state
 from singletons.undo import undo
 from utils.functions import text_to_stbl, compare, fnv64, prettify, create_temporary_copy
 from utils.constants import *
+from utils.recovery import recovery
 
 
 class StorageSignals(QObject):
@@ -210,6 +211,18 @@ class PackagesStorage:
                 empty.append(package.name)
 
         if items:
+            for package in self.packages:
+                saved = recovery.load(package.key, config.value('translation', 'source'),
+                                      config.value('translation', 'destination'))
+                for item in items:
+                    entry = saved.get(recovery.key(item)) if item.package == package.key else None
+                    # Never replace an existing dictionary/manual translation.
+                    if (item.flag == FLAG_UNVALIDATED and isinstance(entry, dict)
+                            and entry.get('source') == item.source
+                            and isinstance(entry.get('translation'), str)):
+                        item.translate = entry['translation']
+                        item.flag = FLAG_VALIDATED
+                        package.modify()
             self.model.append(items)
 
         progress_signals.finished.emit()
@@ -331,41 +344,27 @@ class PackagesStorage:
                 fpath = create_temporary_copy(fpath)
                 is_temp = True
 
-            dbfile = DbpfPackage(fpath, mode='r')
-            outpkg = DbpfPackage(tpath, mode='w')
-
-            instances = dbfile.search()
-
-            progress_signals.initiate.emit(
-                interface.text('System', 'Saving package {}...').format(os.path.basename(tpath)),
-                len(instances))
-
-            language_dest = config.value('translation', 'destination')
-
-            for rid in instances:
-                if rid.language == language_dest:
-                    for r, s in stbl.items():
-                        if r.group == rid.group and r.instance == rid.instance:
-                            outpkg.put(r, s.binary)
-                            del stbl[r]
-                            break
-                else:
-                    content = dbfile[rid].content
-                    if content:
-                        outpkg.put(rid, content)
-
-                progress_signals.increment.emit()
-
-            dbfile.close()
-
-            if is_temp:
-                file_to_rem = pathlib.Path(fpath)
-                file_to_rem.unlink()
-
-            for rid, s in stbl.items():
-                outpkg.put(rid, s.binary)
-
-            outpkg.commit()
+            try:
+                with DbpfPackage.read(fpath) as dbfile, DbpfPackage.write(tpath) as outpkg:
+                    instances = dbfile.search()
+                    progress_signals.initiate.emit(
+                        interface.text('System', 'Saving package {}...').format(os.path.basename(tpath)),
+                        len(instances))
+                    language_dest = config.value('translation', 'destination')
+                    for rid in instances:
+                        if rid.language == language_dest and rid in stbl:
+                            outpkg.put(rid, stbl.pop(rid).binary)
+                        else:
+                            content = dbfile[rid].content
+                            if content is None:
+                                raise ValueError('Unsupported package compression; original file retained.')
+                            outpkg.put(rid, content)
+                        progress_signals.increment.emit()
+                    for rid, table in stbl.items():
+                        outpkg.put(rid, table.binary)
+            finally:
+                if is_temp:
+                    pathlib.Path(fpath).unlink(missing_ok=True)
 
             progress_signals.finished.emit()
 

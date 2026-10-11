@@ -1,0 +1,61 @@
+name: Tests and Windows build
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.12', '3.14']
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m pytest -q
+      - run: python -m compileall -q main.py singletons storages packer windows utils
+  build:
+    needs: test
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m PyInstaller --noconfirm --clean --windowed --onedir --name Sims4Translator main.py
+      - shell: pwsh
+        run: |
+          Copy-Item prefs dist/Sims4Translator/prefs -Recurse
+          Copy-Item fonts dist/Sims4Translator/fonts -Recurse
+          Copy-Item LICENSE dist/Sims4Translator/LICENSE
+          Copy-Item docs/WINDOWS.md dist/Sims4Translator/README-Windows.md
+          if (Test-Path dist/Sims4Translator/prefs/config.xml) { throw 'Private config included in build' }
+          if (Test-Path dist/Sims4Translator/prefs/recovery) { throw 'Private recovery included in build' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sims4Translator-Windows
+          path: dist/Sims4Translator/
+          retention-days: 14

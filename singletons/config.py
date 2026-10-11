@@ -2,6 +2,7 @@
 
 import os
 import ctypes
+import copy
 import ctypes.wintypes
 import xml.etree.ElementTree as ElementTree
 from xml.dom import minidom
@@ -11,6 +12,8 @@ from utils.constants import *
 
 
 def is_dark_theme():
+    if os.name != 'nt':
+        return False
     registry = ctypes.windll.advapi32
     hkey_current_user = 0x80000001
     sub_key = r'SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize'
@@ -82,7 +85,7 @@ class ConfigManager:
 
     def __init__(self) -> None:
         self.__config_file = './prefs/config.xml'
-        self.__config = self.DEFAULTS.copy()
+        self.__config = copy.deepcopy(self.DEFAULTS)
         self.__load()
 
     def __load(self) -> None:
@@ -103,6 +106,7 @@ class ConfigManager:
         reparsed = minidom.parseString(rough)
         prettyxml = reparsed.toprettyxml(indent='  ', encoding='utf-8')
 
+        os.makedirs(os.path.dirname(self.__config_file), exist_ok=True)
         with open(self.__config_file, 'wb') as fp:
             fp.write(prettyxml)
 
