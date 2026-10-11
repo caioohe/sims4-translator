@@ -3,7 +3,7 @@
 - Base upstream: 606ca092b97b9ecd964363dfa38998d2558c3a01.
 - Ambiente local: Linux, Python 3.12.14, PySide6 6.12.0, requests 2.34.2, pytest 9.1.1.
 - Comando: `QT_QPA_PLATFORM=offscreen python -m pytest -q`.
-- Resultado local: **53 passed**, sem rede/API real (aproximadamente 0,4s).
+- Resultado local: **54 passed**, sem rede/API real (aproximadamente 0,4s).
 - Sintaxe: `python -m compileall -q main.py singletons storages packer windows utils`.
 - `git diff --check`: sem erros.
 

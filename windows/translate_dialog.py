@@ -57,7 +57,7 @@ class BatchTranslateWorker(QRunnable):
 
     def __init__(self, chunk, engine, cancel=None):
         super().__init__()
-        self.chunk = chunk if isinstance(chunk, list) else [chunk]
+        self.chunk = [chunk] if isinstance(chunk, MainRecord) or not isinstance(chunk, list) else chunk
         self.engine = engine
         self.cancel = cancel
         self.signals = TranslateSignals()

@@ -94,3 +94,20 @@ def test_application_import_and_window(qapp, monkeypatch):
     window = MainWindow()
     assert window.windowTitle().startswith('The Sims 4 Translator')
     window.close()
+
+
+def test_real_main_record_is_single_translation_item(qapp, monkeypatch):
+    from storages.records import MainRecord
+    from windows import translate_dialog as module
+    from utils.constants import RECORD_MAIN_SOURCE
+    # MainRecord inherits list; it must not be mistaken for a batch of records.
+    record = MainRecord(*([None] * 14))
+    record[RECORD_MAIN_SOURCE] = 'hello'
+    request = Mock(return_value=Response(200, ['Olá']))
+    monkeypatch.setattr(module.translator, 'translate_many', request)
+    worker = BatchTranslateWorker(record, 'DeepL')
+    results = []
+    worker.signals.result.connect(results.append)
+    worker.run()
+    request.assert_called_once_with(['hello'], None)
+    assert results == [[(record, 'Olá')]]
