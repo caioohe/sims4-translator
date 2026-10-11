@@ -65,8 +65,9 @@ class BatchTranslateWorker(QRunnable):
     def run(self):
         try:
             texts = [text_to_edit(item.source) for item in self.chunk]
-            if self.engine.lower() == 'deepl':
-                response = translator.translate_many(texts, self.cancel)
+            if self.engine.lower() in ('deepl', 'gemini'):
+                method = translator.translate_gemini_many if self.engine.lower() == 'gemini' else translator.translate_many
+                response = method(texts, self.cancel)
                 values = response.text
             else:
                 response = translator.translate(self.engine, texts[0], self.cancel)
@@ -143,7 +144,7 @@ class TranslateDialog(QDialog, Ui_TranslateDialog):
 
     def check_api(self):
         api = self.cb_api.currentText().lower()
-        if api == 'deepl':
+        if api in ('deepl', 'gemini'):
             self.rb_fast.setEnabled(True)
         else:
             self.rb_fast.setEnabled(False)

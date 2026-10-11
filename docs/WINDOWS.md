@@ -83,3 +83,9 @@ Se editar manualmente, salve seu dicionário antes de fechar para ele ter priori
   certificam todas as variantes DBPF/RefPack nem o conteúdo de mods reais.
 - Google continua dependendo de HTML não oficial. Se receber 429, aguarde ou
   escolha uma API autorizada; não há proxy, rotação de IP ou bypass de limites.
+
+## Gemini e Google na atualização
+
+Veja [GEMINI_GOOGLE.md](GEMINI_GOOGLE.md) para configurar a chave Gemini, testar
+uma tradução sintética e ajustar o intervalo Google. O ZIP atualizado usa a mesma
+branch, com Gemini como provedor adicional.

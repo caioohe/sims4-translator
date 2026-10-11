@@ -111,3 +111,51 @@ def test_real_main_record_is_single_translation_item(qapp, monkeypatch):
     worker.run()
     request.assert_called_once_with(['hello'], None)
     assert results == [[(record, 'Olá')]]
+
+
+def test_gemini_worker_handles_real_records_and_returns_validated_batch(qapp, monkeypatch):
+    from storages.records import MainRecord
+    from windows import translate_dialog as module
+    from utils.constants import RECORD_MAIN_SOURCE
+    record=MainRecord(*([None]*14));record[RECORD_MAIN_SOURCE]='Hello {0.Name}'
+    result=Mock(return_value=Response(200,['Olá {0.Name}']))
+    monkeypatch.setattr(module.translator,'translate_gemini_many',result)
+    worker=BatchTranslateWorker(record,'Gemini')
+    outputs=[];worker.signals.result.connect(outputs.append)
+    worker.run()
+    assert outputs == [[(record,'Olá {0.Name}')]]
+    result.assert_called_once_with(['Hello {0.Name}'],None)
+
+
+def test_options_gemini_settings_and_async_local_test(qapp, monkeypatch):
+    from storages.packages import PackagesStorage
+    from storages.dictionaries import DictionariesStorage
+    from windows.main_window import MainWindow
+    from singletons.config import config
+    monkeypatch.setattr(app_state,'packages_storage',PackagesStorage())
+    monkeypatch.setattr(app_state,'dictionaries_storage',DictionariesStorage())
+    changed=[]
+    monkeypatch.setattr(config,'set_value',lambda section,option,value:changed.append((section,option,value)))
+    from windows.options_dialog import OptionsDialog
+    window=MainWindow();dialog=OptionsDialog(window)
+    dialog.txt_gemini_key.setText(' synthetic-local-key ')
+    dialog.cb_gemini_model.setCurrentText('gemini-3.6-flash')
+    dialog.spin_google_interval.setValue(4)
+    assert ('api','gemini_key','synthetic-local-key') in changed
+    assert ('api','gemini_model','gemini-3.6-flash') in changed
+    assert ('api','google_interval',4) in changed
+    from PySide6.QtWidgets import QLineEdit
+    assert dialog.txt_gemini_key.echoMode() == QLineEdit.EchoMode.Password
+    mock=Mock(return_value=Response(200,'Olá {0.SimFirstName}!'))
+    monkeypatch.setattr(translator_for_test(),'translate',mock)
+    dialog.test_gemini()
+    assert not dialog.btn_gemini_test.isEnabled()
+    pump(qapp,lambda:dialog._gemini_worker is None)
+    assert dialog.lbl_gemini_status.text() == 'Olá {0.SimFirstName}!'
+    assert mock.call_args.args[:2] == ('Gemini','Hello {0.SimFirstName}!')
+    window.close()
+
+
+def translator_for_test():
+    from singletons.translator import translator
+    return translator

@@ -165,3 +165,9 @@ para keyring. Compatibilidade Win7 e Python 3.15 não é prometida.
 - https://developers.deepl.com/api-reference/translate/request-translation
 - https://mymemory.translated.net/doc/spec.php
 - https://mymemory.translated.net/doc/usagelimits.php
+
+## Atualização posterior: Gemini e Google
+
+As descrições históricas acima são da primeira auditoria. [GEMINI_GOOGLE.md](GEMINI_GOOGLE.md)
+documenta o novo provedor, tradução dentro de ramos de gênero e controle Google,
+superando as limitações correspondentes da primeira versão.

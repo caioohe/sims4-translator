@@ -123,7 +123,7 @@ def test_mymemory_body_error(monkeypatch, api):
 
 
 def test_google_html_changed(monkeypatch, api):
-    monkeypatch.setattr(requests, 'get', Mock(return_value=SimpleNamespace(status_code=200, content=b'<html>No translation</html>')))
+    monkeypatch.setattr(requests, 'get', Mock(return_value=SimpleNamespace(status_code=200, content=b'<html>No translation</html>', close=lambda:None)))
     assert translator.translate('Google', 'hello').status_code != 200
 
 

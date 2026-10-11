@@ -3,7 +3,11 @@
 from PySide6.QtCore import Qt, QCoreApplication, QObject, QTimer, QAbstractTableModel, \
     Signal, Slot, QThreadPool, QRunnable
 from PySide6.QtWidgets import QHeaderView, QStyledItemDelegate, QDialog
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QDesktopServices
+from PySide6.QtCore import QUrl
+from threading import Event
+from singletons.translator import translator
+from utils.gemini import DEFAULT_MODEL
 
 from windows.ui.options_dialog import Ui_OptionsDialog
 
@@ -157,6 +161,25 @@ class DelegatePaint(QStyledItemDelegate):
         super().paint(painter, option, index)
 
 
+class GeminiTestSignals(QObject):
+    result = Signal(object)
+
+
+class GeminiTestWorker(QRunnable):
+    def __init__(self, cancel):
+        super().__init__()
+        self.cancel = cancel
+        self.signals = GeminiTestSignals()
+
+    def run(self):
+        from singletons.translator import Response
+        try:
+            response = translator.translate('Gemini', 'Hello {0.SimFirstName}!', self.cancel)
+        except Exception:
+            response = Response(500, 'Gemini test failed. Original files were not modified.')
+        self.signals.result.emit(response)
+
+
 class OptionsDialog(QDialog, Ui_OptionsDialog):
 
     def __init__(self, parent):
@@ -186,7 +209,22 @@ class OptionsDialog(QDialog, Ui_OptionsDialog):
         self.cb_strong.clicked.connect(self.checkbox_click)
 
         self.txt_path.setText(config.value('dictionaries', 'gamepath'))
-        self.txt_deepl_key.setText(config.value('api', 'deepl_key'))
+        self.txt_deepl_key.setText(config.value('api', 'deepl_key') or '')
+        self.txt_gemini_key.setText(config.value('api', 'gemini_key') or '')
+        self.cb_gemini_model.setCurrentText(config.value('api', 'gemini_model') or DEFAULT_MODEL)
+        try:
+            self.spin_google_interval.setValue(float(config.value('api', 'google_interval') or 2))
+        except (ValueError, TypeError):
+            self.spin_google_interval.setValue(2)
+        self.txt_gemini_key.textChanged.connect(self.change_gemini_key)
+        self.cb_gemini_model.currentTextChanged.connect(self.change_gemini_model)
+        self.spin_google_interval.valueChanged.connect(self.change_google_interval)
+        self.btn_gemini_key.clicked.connect(lambda: QDesktopServices.openUrl(QUrl('https://aistudio.google.com/apikey')))
+        self.btn_gemini_test.clicked.connect(self.test_gemini)
+        self._gemini_cancel = Event()
+        self._gemini_worker = None
+        self._gemini_closing = False
+        self._gemini_pool = QThreadPool(self)
 
         self.cb_language.currentIndexChanged.connect(self.interface_change)
         self.cb_theme.currentIndexChanged.connect(self.theme_change)
@@ -244,6 +282,13 @@ class OptionsDialog(QDialog, Ui_OptionsDialog):
         self.tabs.setTabText(self.tabs.indexOf(self.tab_general), interface.text('OptionsDialog', 'General'))
         self.tabs.setTabText(self.tabs.indexOf(self.tab_dictionaries), interface.text('OptionsDialog', 'Dictionaries'))
         self.gb_deepl.setTitle(interface.text('OptionsDialog', 'DeepL API key'))
+        self.tabs.setTabText(self.tabs.indexOf(self.tab_ai), interface.text('OptionsDialog', 'Gemini and Google'))
+        self.gb_gemini.setTitle(interface.text('OptionsDialog', 'Gemini API key and model'))
+        self.lbl_gemini_hint.setText(interface.text('OptionsDialog', 'Use an API key from Google AI Studio. Free Tier has limits; your Gemini app subscription does not determine the API project tier. Model availability varies.'))
+        self.btn_gemini_key.setText(interface.text('OptionsDialog', 'Get API key'))
+        self.btn_gemini_test.setText(interface.text('OptionsDialog', 'Test translation'))
+        self.gb_google.setTitle(interface.text('OptionsDialog', 'Google Translate request interval'))
+        self.lbl_google_hint.setText(interface.text('OptionsDialog', 'Google uses an unofficial web page. A longer interval can reduce 429 errors, but cannot guarantee access. Stop on browser verification.'))
 
         self.lbl_language.setText(interface.text('OptionsDialog', 'Language'))
         self.lbl_theme.setText(interface.text('OptionsDialog', 'Theme'))
@@ -290,6 +335,47 @@ class OptionsDialog(QDialog, Ui_OptionsDialog):
 
     def change_deepl_key(self):
         config.set_value('api', 'deepl_key', self.txt_deepl_key.text())
+
+    def change_gemini_key(self):
+        config.set_value('api', 'gemini_key', self.txt_gemini_key.text().strip())
+
+    def change_gemini_model(self):
+        config.set_value('api', 'gemini_model', self.cb_gemini_model.currentText().strip())
+
+    def change_google_interval(self):
+        config.set_value('api', 'google_interval', self.spin_google_interval.value())
+
+    def test_gemini(self):
+        if self._gemini_worker is not None:
+            return
+        self._gemini_cancel.clear()
+        self.lbl_gemini_status.setText(interface.text('OptionsDialog', 'Testing Gemini translation...'))
+        self.btn_gemini_test.setEnabled(False)
+        self.txt_gemini_key.setEnabled(False)
+        self.cb_gemini_model.setEnabled(False)
+        worker = GeminiTestWorker(self._gemini_cancel)
+        self._gemini_worker = worker
+        worker.signals.result.connect(self.gemini_test_result)
+        self._gemini_pool.start(worker)
+
+    @Slot(object)
+    def gemini_test_result(self, response):
+        self._gemini_worker = None
+        self.btn_gemini_test.setEnabled(True)
+        self.txt_gemini_key.setEnabled(True)
+        self.cb_gemini_model.setEnabled(True)
+        self.lbl_gemini_status.setText(response.text)
+        if self._gemini_closing:
+            self._gemini_closing = False
+            self.close()
+
+    def closeEvent(self, event):
+        if self._gemini_worker is not None:
+            self._gemini_closing = True
+            self._gemini_cancel.set()
+            event.ignore()
+        else:
+            super().closeEvent(event)
 
     def change_path(self):
         config.set_value('dictionaries', 'gamepath', self.txt_path.text())

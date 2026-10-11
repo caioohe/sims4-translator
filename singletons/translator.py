@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import re
 import requests
-import html
 import json
 from xml.etree.ElementTree import ParseError
 from utils.translation import protect, restore, deepl_transport, TranslationCancelled
+from utils.gemini import api_key as gemini_key, translate_gemini
+from utils.google_translate import translate_google
+from utils.http_policy import google_transport
 from collections import namedtuple
 from typing import List
 
@@ -24,6 +25,8 @@ class Translator:
         engines = ['Google', 'MyMemory']
         if config.value('api', 'deepl_key'):
             engines.append('DeepL')
+        if gemini_key(config):
+            engines.append('Gemini')
         return engines
 
     @property
@@ -31,11 +34,12 @@ class Translator:
         return len(self.engines) > 0
 
     def translate(self, engine: str, text: str, cancel=None) -> Response:
-        if engine.lower() == 'deepl':
-            response = self.translate_many([text], cancel)
+        if engine.lower() in ('deepl', 'gemini'):
+            response = (self.translate_gemini_many([text], cancel) if engine.lower() == 'gemini'
+                        else self.translate_many([text], cancel))
             return Response(response.status_code, response.text[0] if response.status_code == 200 else response.text)
         protected, placeholders = protect(text)
-        response = self.__mymemory(protected) if engine.lower() == 'mymemory' else self.__google(protected)
+        response = self.__mymemory(protected) if engine.lower() == 'mymemory' else self.__google(protected, cancel)
         if response.status_code != 200:
             return response
         try:
@@ -75,36 +79,18 @@ class Translator:
         except (KeyError, IndexError, TypeError, ValueError, ParseError) as exc:
             return Response(422, f'Invalid DeepL response: {exc}')
 
+    def translate_gemini_many(self, texts, cancel=None):
+        return Response(*translate_gemini(config, texts,
+            config.value('translation', 'source'), config.value('translation', 'destination'), cancel))
+
     @staticmethod
-    def __google(text: str) -> Response:
+    def __google(text: str, cancel=None) -> Response:
         language = languages.destination
-
-        if language and language.google:
-            payload = {
-                'sl': 'auto',
-                'tl': language.google,
-                'q': text
-            }
-
-            url = 'https://translate.google.com/m?sl=auto'
-            ua = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                  'AppleWebKit/537.36 (KHTML, like Gecko) '
-                  'Chrome/122.0.0.0 Safari/537.36')
-
-            try:
-                req = requests.get(url, params=payload, headers={'User-Agent': ua}, timeout=10)
-                if req.status_code == 200:
-                    content = req.content.decode('utf-8')
-                    expr = r'(?s)class="(?:t0|result-container)">(.*?)<'
-                    return Response(200, html.unescape(re.findall(expr, content)[0]))
-                else:
-                    return Response(req.status_code,
-                                    interface.text('Errors', 'Translation failed with error code: {}').format(
-                                        req.status_code))
-            except Exception as e:
-                return Response(500, 'Translation service returned an invalid response or the connection failed.')
-
-        return Response(404, interface.text('Errors', 'Language code not found!'))
+        try:
+            google_transport.interval = max(2.0, min(60.0, float(config.value('api', 'google_interval') or 2)))
+        except (ValueError, TypeError):
+            google_transport.interval = 2.0
+        return Response(*translate_google(text, language.google if language else None, cancel))
 
     @staticmethod
     def __mymemory(text: str) -> Response:

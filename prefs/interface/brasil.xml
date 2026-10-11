@@ -474,6 +474,38 @@
       <source>The translation version differs from the application version, so the interface may not be fully translated</source>
       <translation>A versão traduzida difere da versão do aplicativo, portanto a interface pode não estar totalmente traduzida</translation>
     </string>
+      <string>
+      <source>Gemini and Google</source>
+      <translation>Gemini e Google</translation>
+    </string>
+    <string>
+      <source>Gemini API key and model</source>
+      <translation>Chave de API e modelo Gemini</translation>
+    </string>
+    <string>
+      <source>Use an API key from Google AI Studio. Free Tier has limits; your Gemini app subscription does not determine the API project tier. Model availability varies.</source>
+      <translation>Use uma chave do Google AI Studio. O plano gratuito tem limites; sua assinatura do app Gemini não determina o plano do projeto de API. Os modelos disponíveis variam.</translation>
+    </string>
+    <string>
+      <source>Get API key</source>
+      <translation>Obter chave de API</translation>
+    </string>
+    <string>
+      <source>Test translation</source>
+      <translation>Testar tradução</translation>
+    </string>
+    <string>
+      <source>Testing Gemini translation...</source>
+      <translation>Testando tradução pelo Gemini...</translation>
+    </string>
+    <string>
+      <source>Google Translate request interval</source>
+      <translation>Intervalo de requisições do Google Tradutor</translation>
+    </string>
+    <string>
+      <source>Google uses an unofficial web page. A longer interval can reduce 429 errors, but cannot guarantee access. Stop on browser verification.</source>
+      <translation>O Google usa uma página web não oficial. Aumentar o intervalo pode reduzir o erro 429, mas não garante acesso. A tradução pausa se houver verificação no navegador.</translation>
+    </string>
   </context>
   <context name="ReplaceDialog">
     <string>

@@ -49,3 +49,5 @@ Original MIT license and credits are preserved. Work is reviewed on
 DeepL uses the official API with bounded retries and native batches. Google still
 uses its unofficial HTML interface. No proxy or IP rotation is implemented.
 Never commit `prefs/config.xml`, `prefs/recovery/`, dictionaries or private mods.
+
+- [Gemini integration and Google 429 investigation (PT-BR)](docs/GEMINI_GOOGLE.md)

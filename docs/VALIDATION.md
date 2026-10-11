@@ -3,7 +3,7 @@
 - Base upstream: 606ca092b97b9ecd964363dfa38998d2558c3a01.
 - Ambiente local: Linux, Python 3.12.14, PySide6 6.12.0, requests 2.34.2, pytest 9.1.1.
 - Comando: `QT_QPA_PLATFORM=offscreen python -m pytest -q`.
-- Resultado local: **54 passed**, sem rede/API real (aproximadamente 0,4s).
+- Resultado local: **114 passed**, sem rede/API real (aproximadamente 0,6s).
 - Sintaxe: `python -m compileall -q main.py singletons storages packer windows utils`.
 - `git diff --check`: sem erros.
 
@@ -24,3 +24,11 @@ resultado e artifact exatos. Build aprovado não comprova tradução real nem us
 
 Não validado com serviço real: chave/conta DeepL, cota/429 do usuário, tradução
 semântica, comportamento de gênero, mudanças atuais do Google HTML, mods reais e jogo.
+
+## Atualização Gemini + Google
+
+114 testes locais aprovados. Gemini é testado somente com HTTP simulado; sem chave
+real. Google usa mocks e uma tentativa real sintética terminou em ReadTimeout.
+A atualização protege gênero, tokens, IDs e respostas incompletas, acrescenta
+controle de frequência Google e botão de teste Gemini. Consulte o PR para o run
+Windows correspondente ao commit final; o run anterior não valida código novo.

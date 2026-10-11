@@ -67,7 +67,10 @@ class ConfigManager:
         },
         'api': {
             'engine': '',
-            'deepl_key': ''
+            'deepl_key': '',
+            'gemini_key': '',
+            'gemini_model': 'gemini-3.8-flash',
+            'google_interval': 2
         },
         'view': {
             'id': True,
