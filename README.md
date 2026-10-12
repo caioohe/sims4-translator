@@ -1,109 +1,113 @@
+<p align="center"><strong>English</strong> · <a href="README.pt-BR.md">Português (Brasil)</a></p>
+
 <p align="center">
-  <img src="docs/assets/banner.svg" alt="The Sims 4 Translator — fork de confiabilidade" width="100%">
+  <img src="docs/assets/banner-en.svg" alt="The Sims 4 Translator — reliability fork" width="100%">
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/licen%C3%A7a-MIT-68dbc2" alt="Licença MIT"></a>
-  <img src="https://img.shields.io/badge/plataforma-Windows_10%2F11-3277bb" alt="Windows 10 e 11">
-  <img src="https://img.shields.io/badge/Python-3.12_%7C_3.14-3277bb" alt="Python 3.12 e 3.14">
-  <a href="https://github.com/caioohe/sims4-translator/pull/1"><img src="https://img.shields.io/badge/desenvolvimento-em_revis%C3%A3o-e6b85c" alt="Desenvolvimento em revisão"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-68dbc2" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/platform-Windows_10%2F11-3277bb" alt="Windows 10 and 11">
+  <img src="https://img.shields.io/badge/Python-3.12_%7C_3.14-3277bb" alt="Python 3.12 and 3.14">
+  <a href="https://github.com/caioohe/sims4-translator/pull/1"><img src="https://img.shields.io/badge/development-under_review-e6b85c" alt="Development under review"></a>
 </p>
 
 <p align="center">
-  <a href="#baixar-e-executar">Download</a> ·
-  <a href="#tradutores-disponíveis">Tradutores</a> ·
-  <a href="#como-traduzir-um-mod">Como usar</a> ·
-  <a href="#documentação-e-validação">Documentação</a> ·
-  <a href="https://github.com/caioohe/sims4-translator/issues">Relatar problema</a>
+  <a href="#download-and-run">Download</a> ·
+  <a href="#translation-providers">Providers</a> ·
+  <a href="#translate-a-mod">Getting started</a> ·
+  <a href="#documentation-and-validation">Documentation</a> ·
+  <a href="https://github.com/caioohe/sims4-translator/issues">Report an issue</a>
 </p>
 
-Um editor de traduções de mods `.package` do **The Sims 4**, com dicionários reutilizáveis, exportação de traduções e integração com serviços de tradução automática.
+A translation editor for **The Sims 4** `.package` mods, with reusable dictionaries, translation exports and automatic translation services.
 
-Este fork de **caioohe** deriva de [voky1/sims4-translator](https://github.com/voky1/sims4-translator). O foco é melhorar o tratamento de falhas, preservar a estrutura dos textos e reduzir a perda de progresso em mods grandes.
+This fork, maintained by **caioohe**, derives from [voky1/sims4-translator](https://github.com/voky1/sims4-translator). It focuses on handling failures, preserving game text structure and reducing lost progress when translating large mods.
 
-> **Versão em revisão:** as melhorias estão na branch [`fix/translation-reliability`](https://github.com/caioohe/sims4-translator/tree/fix/translation-reliability), no [PR #1](https://github.com/caioohe/sims4-translator/pull/1). A branch `main` ainda contém a base original. Nenhum merge foi feito automaticamente.
+> **Under review:** improvements are on [`fix/translation-reliability`](https://github.com/caioohe/sims4-translator/tree/fix/translation-reliability), in [PR #1](https://github.com/caioohe/sims4-translator/pull/1). The `main` branch still contains the original base. No automatic merge has been performed.
 
-## O que mudou neste fork
+## Changes in this fork
 
-- **Gemini e Microsoft Translator:** APIs oficiais, tradução em lotes e botões de teste nas opções.
-- **Proteção do texto do jogo:** validação de variáveis, tags e escapes; Gemini/Microsoft traduzem o texto visível dos ramos de gênero `{M0...}` e `{F0...}` preservando sua estrutura.
-- **Falhas de rede e limites:** timeouts, tentativas limitadas e espera orientada por `Retry-After` nos provedores implementados. Um erro persistente interrompe a tradução.
-- **Recuperação de progresso:** checkpoints dos lotes concluídos, com retomada de registros compatíveis ao reabrir o pacote.
-- **Arquivos `.package` e STBL:** correções documentadas de escrita, backup, cache e preservação de recursos.
-- **Opções organizadas:** provedores na aba Geral, chaves mascaradas, salvamento ao fechar Opções e tamanho de lote configurável.
+- **Gemini and Microsoft Translator:** official APIs, batch translation and test buttons in Options.
+- **Game text protection:** variables, tags and escapes are validated; Gemini/Microsoft translate visible text inside `{M0...}` and `{F0...}` gender branches while preserving their structure.
+- **Network failures and limits:** timeouts, bounded retries and `Retry-After` handling in the implemented provider adapters. Persistent errors stop translation.
+- **Progress recovery:** completed batches are checkpointed; compatible records can be restored when reopening a package.
+- **`.package` and STBL handling:** documented fixes for writing, backups, caches and resource preservation.
+- **Organized settings:** provider settings in General, masked keys, saving when Options closes and configurable batch size.
 
-As funções originais de dicionários, tradução manual, exportação para um pacote separado e finalização no mod continuam disponíveis. Consulte a [auditoria](docs/AUDIT.md) para os problemas demonstrados e as limitações de cada correção.
+Original dictionaries, manual translation, separate package exports and finalization into the mod remain available. See the [audit (PT-BR)](docs/AUDIT.md) for demonstrated issues and the limits of each fix.
 
-## Baixar e executar
+## Download and run
 
-1. Abra [GitHub Actions](https://github.com/caioohe/sims4-translator/actions/workflows/ci.yml) e selecione uma execução **bem-sucedida** da branch `fix/translation-reliability`.
-2. Na seção **Artifacts**, baixe **Sims4Translator-Windows**. É necessário estar conectado ao GitHub.
-3. Extraia **todo o ZIP** para uma pasta com permissão de escrita.
-4. Abra **`Sims4Translator.exe`**.
+1. Open [GitHub Actions](https://github.com/caioohe/sims4-translator/actions/workflows/ci.yml) and select a **successful** run for `fix/translation-reliability`.
+2. Under **Artifacts**, download **Sims4Translator-Windows**. You must be signed in to GitHub.
+3. Extract the **entire ZIP** into a writable folder.
+4. Run **`Sims4Translator.exe`**.
 
-Não copie apenas o executável: mantenha `_internal`, `prefs` e `fonts` junto dele. Os artifacts ficam disponíveis por **14 dias**; ainda não existe uma release estável deste fork.
+Keep `_internal`, `prefs` and `fonts` next to the executable. Artifacts are retained for **14 days**; this fork does not yet have a stable release.
 
-**Build validado das integrações atuais:** [execução #5](https://github.com/caioohe/sims4-translator/actions/runs/38183900356), código `eecc409`.
+**Validated build of the current integrations:** [run #5](https://github.com/caioohe/sims4-translator/actions/runs/38183900356), code `eecc409`.
 
-## Tradutores disponíveis
+## Translation providers
 
-| Serviço | Integração | O que configurar |
+| Service | Integration | Required setup |
 | --- | --- | --- |
-| **Microsoft Translator** | API oficial Azure Translator v3 | Chave e região do recurso; escolha **F0** para a franquia gratuita |
-| **Gemini** | API oficial Google `generateContent` | Chave do AI Studio e modelo disponível no seu projeto |
-| **DeepL** | API oficial, com lotes nativos | Chave **DeepL API** Free ou paga |
-| **Google Translate** | Página web não oficial | Sem chave; intervalo ajustável, sujeito a bloqueios e alterações do site |
-| **MyMemory** | Serviço MyMemory | Sem chave na integração atual; sujeito às cotas do serviço |
+| **Microsoft Translator** | Official Azure Translator v3 API | Resource key and region; choose **F0** for the free allowance |
+| **Gemini** | Official Google `generateContent` API | AI Studio key and a model available to your project |
+| **DeepL** | Official API with native batches | **DeepL API** Free or paid key |
+| **Google Translate** | Unofficial web page | No key; adjustable interval, subject to blocks and site changes |
+| **MyMemory** | MyMemory service | No key in the current integration; subject to service quotas |
 
-As franquias e a disponibilidade pertencem a cada serviço. Uma assinatura do aplicativo Gemini ou do tradutor web DeepL não equivale à franquia de suas APIs. Este programa não cria contas, não ativa faturamento e não contorna limites com proxies ou rotação de IP.
+Allowances and availability are determined by each service. A Gemini app subscription or DeepL web subscription does not determine API allowances. The program does not create accounts, activate billing or bypass limits with proxies or IP rotation.
 
-### Configuração rápida
+### Quick setup
 
-Em **Opções → Geral**, selecione os idiomas de origem e destino e configure o provedor:
+In **Options → General**, select the source and destination languages and configure your provider:
 
-- **Microsoft:** informe a chave e a região exata do recurso. Para **Brazil South**, use `brazilsouth`; para um recurso **Global**, deixe a região vazia. [Guia completo](docs/MICROSOFT.md).
-- **Gemini:** informe a chave e escolha um modelo. Use **Testar tradução** antes de iniciar um mod grande. [Guia e investigação do Google](docs/GEMINI_GOOGLE.md).
-- **DeepL:** informe sua chave de API. O programa identifica o endpoint Free pelas chaves terminadas em `:fx`.
+- **Microsoft:** enter the key and exact resource region. Use `brazilsouth` for **Brazil South**; leave the region blank for a **Global** resource. [Full guide (PT-BR)](docs/MICROSOFT.md).
+- **Gemini:** enter your key and select a model. Use **Test translation** before starting a large mod. [Guide and Google investigation (PT-BR)](docs/GEMINI_GOOGLE.md).
+- **DeepL:** enter your API key. The program selects the Free endpoint for keys ending in `:fx`.
 
-Feche as Opções para salvar. Gemini e Microsoft aparecem na lista de tradutores quando uma chave está configurada, localmente ou por variável de ambiente.
+Close Options to save. Gemini and Microsoft appear in the provider list when a key is configured locally or through an environment variable. Gemini accepts `GEMINI_API_KEY`; Microsoft accepts `AZURE_TRANSLATOR_KEY` and `AZURE_TRANSLATOR_REGION`.
 
-**Textos por lote:** de 1 a 100, padrão 50, no modo de várias linhas para Gemini/Microsoft. DeepL fica limitado a 50. O limite de caracteres continua valendo: textos longos podem gerar lotes menores. Lotes maiores não garantem maior velocidade.
+**Texts per batch:** 1–100, default 50, in multiline mode for Gemini/Microsoft. DeepL is capped at 50. Character limits still apply: long texts may produce smaller batches. Larger batches do not guarantee faster translation.
 
-## Como traduzir um mod
+## Translate a mod
 
-1. Trabalhe com uma cópia do arquivo `.package` e abra-a no programa.
-2. Confira os idiomas e selecione o tradutor automático.
-3. Traduza um trecho pequeno e revise nomes, sentido e variáveis antes de processar tudo.
-4. Salve o dicionário para reutilizar as traduções em versões futuras do mod.
-5. Exporte a tradução para um `.package` separado ou finalize no mod, conforme seu fluxo.
-6. Confira o pacote no Sims 4 Studio e teste no jogo.
+1. Open a copy of your `.package` file.
+2. Check the languages and choose an automatic translation provider.
+3. Translate a small selection first; review names, meaning and variables before processing everything.
+4. Save the dictionary to reuse translations in future versions of the mod.
+5. Export to a separate `.package` or finalize into the mod, depending on your workflow.
+6. Check the package in Sims 4 Studio and test it in the game.
 
-### Se a tradução parar
+### If translation stops
 
-- **429:** limite de frequência ou cota. Aguarde e confira o uso no painel do provedor.
-- **503:** indisponibilidade do serviço ou falha de conexão reportada pelo adaptador. Tente novamente mais tarde.
-- **DeepL 456:** cota de tradução esgotada; repetir o pedido não repõe a franquia.
-- **Resposta inválida:** o lote não é aplicado quando faltam resultados ou os tokens protegidos são alterados.
+- **429:** rate limit or quota. Wait and check usage in the provider dashboard.
+- **503:** service unavailability or a connection failure reported by the adapter. Try again later.
+- **DeepL 456:** translation quota exhausted; retrying does not replenish it.
+- **Invalid response:** a batch is not applied if results are missing or protected tokens have changed.
 
-Os lotes anteriores permanecem aplicados. A recuperação considera o caminho do pacote, texto original e idiomas; não substitui o dicionário nem o arquivo final. Veja [como retomar um mod grande](docs/WINDOWS.md#retomar-um-mod-grande).
+Earlier completed batches remain applied. Recovery checks the package path, original text and languages; it does not replace your dictionary or final export. See [resuming a large mod (PT-BR)](docs/WINDOWS.md#retomar-um-mod-grande).
 
-## Documentação e validação
+## Documentation and validation
 
-| Documento | Conteúdo |
+The detailed technical documents below are currently in **Brazilian Portuguese**. This README provides installation, setup and development instructions in English.
+
+| Document | Contents |
 | --- | --- |
-| [Auditoria técnica](docs/AUDIT.md) | Problemas confirmados, arquivos afetados e comparação com Wisdom |
-| [Gemini e Google](docs/GEMINI_GOOGLE.md) | Proteção de tokens, integração Gemini e investigação do HTTP 429 |
-| [Microsoft e opções](docs/MICROSOFT.md) | Configuração Azure, tamanho dos lotes e persistência de chaves |
-| [Windows](docs/WINDOWS.md) | Executar o código, compilar, testar e recuperar progresso |
-| [Resultados de validação](docs/VALIDATION.md) | Evidências e limitações dos testes |
+| [Technical audit](docs/AUDIT.md) | Confirmed issues, affected files and comparison with Wisdom |
+| [Gemini and Google](docs/GEMINI_GOOGLE.md) | Token protection, Gemini integration and HTTP 429 investigation |
+| [Microsoft and settings](docs/MICROSOFT.md) | Azure setup, batch size and key persistence |
+| [Windows](docs/WINDOWS.md) | Run, build, test and recover progress |
+| [Validation results](docs/VALIDATION.md) | Test evidence and limitations |
 
-**146 testes passaram no Windows com Python 3.12 e 3.14**, e o build PyInstaller foi aprovado na [execução #5](https://github.com/caioohe/sims4-translator/actions/runs/38183900356). Os testes usam HTTP simulado e pacotes sintéticos, sem credenciais reais.
+**146 tests passed on Windows with Python 3.12 and 3.14**, and the PyInstaller build succeeded in [run #5](https://github.com/caioohe/sims4-translator/actions/runs/38183900356). Tests use mocked HTTP and synthetic packages, without real credentials.
 
-Isso não certifica a qualidade de tradução de cada modelo, o acesso à sua conta, todas as variantes de mods nem o resultado no jogo. Traduções reais precisam de revisão; os bloqueios do Google web continuam fora do controle do programa.
+This does not certify each model's translation quality, access to your account, all mod variants or in-game results. Real translations require review; Google web blocks remain outside the program's control.
 
-## Desenvolver
+## Development
 
-Windows 10/11 de 64 bits; Python **3.12 ou 3.14** de 64 bits. No PowerShell:
+Windows 10/11 64-bit and **Python 3.12 or 3.14** 64-bit. In PowerShell:
 
 ```powershell
 git clone --branch fix/translation-reliability https://github.com/caioohe/sims4-translator.git
@@ -113,7 +117,7 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe main.py
 ```
 
-Para executar os testes:
+Run tests:
 
 ```powershell
 $env:QT_QPA_PLATFORM = 'offscreen'
@@ -121,20 +125,31 @@ $env:QT_QPA_PLATFORM = 'offscreen'
 Remove-Item Env:QT_QPA_PLATFORM
 ```
 
-O Actions usa runners padrão `windows-latest`, cache de dependências e um build após os testes. O [guia Windows](docs/WINDOWS.md) contém o comando de compilação.
+Build the Windows executable:
 
-**Arquivos locais:** `prefs/config.xml` contém chaves em texto, apesar da máscara na interface. Não publique esse arquivo, `prefs/recovery/`, dicionários nem mods pessoais. Para relatar um bug, inclua mensagem, versão e passos para reproduzir; remova credenciais dos prints e logs.
+```powershell
+.\.venv\Scripts\python.exe -m PyInstaller --noconfirm --clean --windowed --onedir --name Sims4Translator main.py
+Copy-Item prefs dist/Sims4Translator/prefs -Recurse
+Copy-Item fonts dist/Sims4Translator/fonts -Recurse
+Copy-Item LICENSE dist/Sims4Translator/LICENSE
+```
 
-## Idiomas da interface
+Before distributing a local build, remove `prefs/config.xml`, `prefs/recovery/` and any local dictionaries from it. Prefer the Actions artifact for public distribution: it is built from a clean checkout and checks for private configuration and recovery files.
 
-As traduções da interface ficam em `prefs/interface/`. Um novo idioma pode ser adicionado com um arquivo XML nessa pasta. O fork inclui os novos controles em PT-BR.
+Actions uses standard `windows-latest` runners, dependency caching and one build after the tests.
 
-## Créditos e licença
+**Local files:** `prefs/config.xml` stores keys as text despite UI masking. Do not publish this file, `prefs/recovery/`, dictionaries or personal mods. Bug reports should include the message, version and steps to reproduce; remove credentials from screenshots and logs.
 
-- **Projeto original:** [voky1 / The Sims 4 Translator](https://github.com/voky1/sims4-translator).
-- **Manutenção deste fork:** [caioohe](https://github.com/caioohe).
-- **Inspiração original:** [xTranslator](https://www.nexusmods.com/skyrimspecialedition/mods/134).
+## Interface languages
+
+Interface translations are in `prefs/interface/`. Add a new language with an XML file in that folder. The fork includes the new controls in PT-BR.
+
+## Credits and license
+
+- **Original project:** [voky1 / The Sims 4 Translator](https://github.com/voky1/sims4-translator).
+- **Fork maintainer:** [caioohe](https://github.com/caioohe).
+- **Original inspiration:** [xTranslator](https://www.nexusmods.com/skyrimspecialedition/mods/134).
 - **Roboto:** [Apache 2.0](fonts/LICENSE-Roboto.txt).
 - **JetBrains Mono:** [SIL Open Font License 1.1](fonts/LICENSE-JetBrains.txt).
 
-Código sob [licença MIT](LICENSE), preservando a licença e os créditos originais. Projeto comunitário, sem afiliação com EA/Maxis ou com os provedores de tradução.
+Code is under the [MIT license](LICENSE), preserving the original license and credits. A community project, unaffiliated with EA/Maxis or the translation providers.
