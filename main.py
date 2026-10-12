@@ -6,6 +6,10 @@ import glob
 from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QFontDatabase
 
+# Preferences, fonts and interface data are relative to the application directory.
+if getattr(sys, 'frozen', False):
+    os.chdir(os.path.dirname(sys.executable))
+
 from windows.main_window import MainWindow
 
 from singletons.state import app_state

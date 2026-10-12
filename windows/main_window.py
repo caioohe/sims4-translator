@@ -2,7 +2,6 @@
 
 import sys
 import pyperclip
-import time
 from PySide6.QtCore import Qt, QTimer, Slot
 from PySide6.QtWidgets import QApplication, QMainWindow, QMenu, QMessageBox
 from PySide6.QtGui import QAction, QIcon
@@ -492,66 +491,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.translate_dialog.exec()
 
     def translate(self):
-        items = self.tableview.selected_items()
-
-        if items:
-            progress_signals.initiate.emit(interface.text('System', 'Translating...'), len(items))
-
-            success_count = 0
-            error_messages = []
-            retry_delay = 1
-            max_retry_delay = 60
-
-            for i, item in enumerate(items):
-                retry_count = 0
-                max_retries = 3
-                translated = False
-
-                while retry_count <= max_retries and not translated:
-                    response = translator.translate(config.value('api', 'engine'), item.source)
-
-                    if response.status_code == 200:
-                        undo.wrap(item)
-                        item.translate = response.text
-                        item.flag = FLAG_VALIDATED
-                        success_count += 1
-                        translated = True
-                        retry_delay = max(1, retry_delay * 0.8)
-
-                    elif response.status_code == 429:  # Too Many Requests
-                        retry_count += 1
-                        if retry_count <= max_retries:
-                            time.sleep(retry_delay)
-                            retry_delay = min(max_retry_delay, retry_delay * 2)
-                        else:
-                            error_messages.append(f"Rate limit exceeded for '{item.source[:50]}...': {response.text}")
-                    else:
-                        error_messages.append(f"Error for '{item.source[:50]}...': {response.text}")
-                        break
-
-                progress_signals.increment.emit()
-
-                if i < len(items) - 1:
-                    base_delay = 0.1 if retry_delay <= 1 else 0.2
-                    time.sleep(base_delay)
-
-            if success_count > 0:
-                self.colorbar.resfesh()
-                self.tableview.refresh()
-                undo.commit()
-
-            progress_signals.finished.emit()
-
-            if error_messages:
-                error_text = "\n".join(error_messages[:5])
-                if len(error_messages) > 5:
-                    error_text += "\n" + interface.text('Messages', '... and {} other errors').format(
-                        len(error_messages) - 5)
-
-                QMessageBox.critical(self, self.windowTitle(),
-                                     interface.text('Messages',
-                                                    'Translation completed with {} successes.\n\nErrors:\n{}').format(
-                                         success_count, error_text))
+        if self.tableview.selected_items():
+            # Reuse the cancellable, checkpointed worker path for toolbar selections.
+            self.translate_dialog.rb_selection.setChecked(True)
+            QTimer.singleShot(0, self.translate_dialog.translate)
+            self.translate_dialog.exec()
 
     @staticmethod
     def save_dictionary():

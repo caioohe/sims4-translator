@@ -16,6 +16,7 @@ from singletons.signals import progress_signals, storage_signals
 from singletons.state import app_state
 from utils.functions import text_to_stbl
 from utils.constants import *
+from utils.recovery import atomic_write
 
 
 class StorageSignals(QObject):
@@ -70,9 +71,9 @@ class DictionariesStorage:
         self.__pool = QThreadPool()
 
     def search(self, sid: int = None, source: str = None) -> list:
-        if sid:
+        if sid is not None:
             return self.__sid.get(sid, [])
-        elif source:
+        elif source is not None:
             return self.__sources.get(source, [])
         return []
 
@@ -142,7 +143,8 @@ class DictionariesStorage:
         if not item.compare():
             worker = UpdaterWorker(item)
             worker.setAutoDelete(True)
-            self.__pool.start(worker)
+            # This small lookup updates a Qt model and must run on its owner thread.
+            worker.run()
 
     def save(self, force: bool = False, multi: bool = False):
         storage = app_state.packages_storage
@@ -180,5 +182,4 @@ class DictionariesStorage:
 
         f.put_json(_items)
 
-        with open(path, 'w+b') as fp:
-            fp.write(f.get_content())
+        atomic_write(path, f.get_content())

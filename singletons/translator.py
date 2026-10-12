@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import re
 import requests
-import html.parser
+import json
+from xml.etree.ElementTree import ParseError
+from utils.translation import protect, restore, deepl_transport, TranslationCancelled
+from utils.gemini import api_key as gemini_key, translate_gemini
+from utils.microsoft import api_key as microsoft_key, translate_microsoft
+from utils.google_translate import translate_google
+from utils.http_policy import google_transport
 from collections import namedtuple
 from typing import List
 
@@ -21,110 +26,86 @@ class Translator:
         engines = ['Google', 'MyMemory']
         if config.value('api', 'deepl_key'):
             engines.append('DeepL')
+        if gemini_key(config):
+            engines.append('Gemini')
+        if microsoft_key(config):
+            engines.append('Microsoft')
         return engines
 
     @property
     def available(self) -> bool:
         return len(self.engines) > 0
 
-    @staticmethod
-    def extract_placeholders(text):
-        extracted_items = []
-
-        def save_and_replace_pattern(match):
-            extracted_items.append(match.group(0))
-            return f"({len(extracted_items) - 1})"
-
-        modified_text = re.sub(r'{[A-Za-z]?\d+\.[^{}]+}|<[^>]+>', save_and_replace_pattern, text)
-        return modified_text, extracted_items
-
-    @staticmethod
-    def insert_placeholders(text, placeholders):
-        for i, placeholder in enumerate(placeholders):
-            text = text.replace(f"({i})", placeholder)
-
-        text = re.sub(r'(<[^/][^>]+>)\s+', r'\1', text)
-        text = re.sub(r'\s+(</[^>]+>)', r'\1', text)
-
-        return text
-
-    def translate(self, engine: str, text: str) -> Response:
-        modified_text, placeholders = self.extract_placeholders(text)
-
-        # placeholder_spaces = []
-        # for ph in re.finditer(r'\(\d+\)', modified_text):
-        #     before = modified_text[:ph.start()].rstrip()
-        #     after = modified_text[ph.end():].lstrip()
-        #     has_space_before = len(before) != ph.start()
-        #     has_space_after = len(after) != len(modified_text) - ph.end()
-        #     placeholder_spaces.append((has_space_before, has_space_after))
-
-        modified_text = modified_text.replace('\\n', "\n")
-
-        if engine.lower() == 'mymemory':
-            response = Translator.__mymemory(modified_text)
-        elif engine.lower() == 'deepl':
-            response = Translator.__deepl(modified_text)
-        else:
-            response = Translator.__google(modified_text)
-
+    def translate(self, engine: str, text: str, cancel=None) -> Response:
+        if engine.lower() in ('deepl', 'gemini', 'microsoft'):
+            if engine.lower() == 'microsoft':
+                response = self.translate_microsoft_many([text], cancel)
+                return Response(response.status_code, response.text[0] if response.status_code == 200 else response.text)
+            response = (self.translate_gemini_many([text], cancel) if engine.lower() == 'gemini'
+                        else self.translate_many([text], cancel))
+            return Response(response.status_code, response.text[0] if response.status_code == 200 else response.text)
+        protected, placeholders = protect(text)
+        response = self.__mymemory(protected) if engine.lower() == 'mymemory' else self.__google(protected, cancel)
         if response.status_code != 200:
             return response
+        try:
+            return Response(200, restore(response.text, placeholders))
+        except (ValueError, ParseError) as exc:
+            return Response(422, str(exc))
 
-        translated_text = response.text
+    def translate_many(self, texts, cancel=None):
+        api_key = config.value('api', 'deepl_key') or ''
+        src, dst = languages.source, languages.destination
+        if not api_key:
+            return Response(403, 'DeepL API key is missing.')
+        if not (src and src.deepl and dst and dst.deepl):
+            return Response(404, interface.text('Errors', 'Language code not found!'))
+        prepared = [protect(text, xml=True) for text in texts]
+        payload = {'text': [entry[0] for entry in prepared],
+                   'source_lang': src.deepl, 'target_lang': dst.deepl,
+                   'tag_handling': 'xml', 'ignore_tags': ['ph'],
+                   'split_sentences': 'nonewlines'}
+        if not 1 <= len(texts) <= 50 or len(json.dumps(payload).encode('utf-8')) > 128 * 1024:
+            return Response(413, 'DeepL request exceeds 50 texts or 128 KiB.')
+        url = 'https://api-free.deepl.com/v2/translate' if api_key.endswith(':fx') else 'https://api.deepl.com/v2/translate'
+        try:
+            resp = deepl_transport.post(url, payload, api_key, cancel)
+            if resp.status_code != 200:
+                messages = {403: 'Invalid DeepL API key.', 456: 'DeepL quota exceeded. Check your account usage limits.',
+                            429: 'DeepL rate limit persists after retries. Wait before resuming.'}
+                return Response(resp.status_code, messages.get(resp.status_code, f'DeepL HTTP {resp.status_code}.'))
+            entries = resp.json()['translations']
+            if len(entries) != len(texts):
+                raise ValueError('DeepL returned an unexpected number of translations.')
+            return Response(200, [restore(entry['text'], ph, xml=True) for entry, (_, ph) in zip(entries, prepared)])
+        except TranslationCancelled:
+            return Response(499, 'Translation cancelled.')
+        except requests.RequestException:
+            return Response(503, 'DeepL connection failed or timed out after retries. You can resume the untranslated strings.')
+        except (KeyError, IndexError, TypeError, ValueError, ParseError) as exc:
+            return Response(422, f'Invalid DeepL response: {exc}')
 
-        # parts = re.split(r'(\(\d+\))', translated_text)
-        # for i in range(1, len(parts), 2):
-        #     ph_num = int(parts[i][1:-1])
-        #     if ph_num < len(placeholder_spaces):
-        #         has_space_before, has_space_after = placeholder_spaces[ph_num]
-        #         if not has_space_before and parts[i - 1].endswith(' '):
-        #             parts[i - 1] = parts[i - 1].rstrip()
-        #         if not has_space_after and parts[i + 1].startswith(' '):
-        #             parts[i + 1] = parts[i + 1].lstrip()
+    def translate_microsoft_many(self, texts, cancel=None):
+        return Response(*translate_microsoft(config, texts,
+            config.value('translation', 'source'), config.value('translation', 'destination'), cancel))
 
-        # translated_text = ''.join(parts)
-        translated_text = translated_text.replace("\n", '\\n')
-
-        translated_text = self.insert_placeholders(translated_text, placeholders)
-
-        return Response(response.status_code, translated_text)
+    def translate_gemini_many(self, texts, cancel=None):
+        return Response(*translate_gemini(config, texts,
+            config.value('translation', 'source'), config.value('translation', 'destination'), cancel))
 
     @staticmethod
-    def __google(text: str) -> Response:
+    def __google(text: str, cancel=None) -> Response:
         language = languages.destination
-
-        if language and language.google:
-            payload = {
-                'sl': 'auto',
-                'tl': language.google,
-                'q': text
-            }
-
-            url = 'http://translate.google.com/m?sl=auto'
-            ua = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                  'AppleWebKit/537.36 (KHTML, like Gecko) '
-                  'Chrome/122.0.0.0 Safari/537.36')
-
-            try:
-                req = requests.get(url, params=payload, headers={'User-Agent': ua}, timeout=10)
-                if req.status_code == 200:
-                    content = req.content.decode('utf-8')
-                    expr = r'(?s)class="(?:t0|result-container)">(.*?)<'
-                    return Response(200, html.unescape(re.findall(expr, content)[0]))
-                else:
-                    return Response(req.status_code,
-                                    interface.text('Errors', 'Translation failed with error code: {}').format(
-                                        req.status_code))
-            except Exception as e:
-                return Response(500, str(e))
-
-        return Response(404, interface.text('Errors', 'Language code not found!'))
+        try:
+            google_transport.interval = max(2.0, min(60.0, float(config.value('api', 'google_interval') or 2)))
+        except (ValueError, TypeError):
+            google_transport.interval = 2.0
+        return Response(*translate_google(text, language.google if language else None, cancel))
 
     @staticmethod
     def __mymemory(text: str) -> Response:
-        if len(text) > 500:
-            return Response(404, interface.text('Errors', 'A maximum of 500 characters is allowed.'))
+        if len(text.encode('utf-8')) > 500:
+            return Response(404, interface.text('Errors', 'A maximum of 500 UTF-8 bytes is allowed.'))
 
         src = languages.source
         dst = languages.destination
@@ -144,62 +125,19 @@ class Translator:
                 req = requests.get(url, params=payload, headers={'User-Agent': ua}, timeout=10)
                 if req.status_code == 200:
                     content = req.json()
+                    status = int(content.get('responseStatus', 200))
+                    if status != 200 or content.get('quotaFinished'):
+                        return Response(status if status != 200 else 429, 'MyMemory rejected the request or exhausted its quota.')
                     return Response(200, content['responseData']['translatedText'])
                 else:
                     return Response(req.status_code,
                                     interface.text('Errors', 'Translation failed with error code: {}').format(
                                         req.status_code))
             except Exception as e:
-                return Response(500, str(e))
+                return Response(500, 'Translation service returned an invalid response or the connection failed.')
 
         return Response(404, interface.text('Errors', 'Language code not found!'))
 
-    @staticmethod
-    def __deepl(text: str, xml_mode=True) -> Response:
-        api_key = config.value('api', 'deepl_key')
-
-        src = languages.source
-        dst = languages.destination
-
-        if src and src.deepl and dst and dst.deepl:
-            payload = {
-                'text': text,
-                'source_lang': src.deepl,
-                'target_lang': dst.deepl,
-                'split_sentences': 1,
-                'tag_handling': 'xml' if xml_mode else 'plain'
-            }
-
-            url = 'https://api.deepl.com/v2/translate'
-            url_free = 'https://api-free.deepl.com/v2/translate'
-            api_url = url_free if ':fx' in api_key else url
-
-            try:
-                resp = requests.post(
-                    api_url,
-                    data=payload,
-                    headers={'Authorization': f'DeepL-Auth-Key {api_key}'},
-                    timeout=10
-                )
-
-                if resp.status_code == 200:
-                    txt = resp.json()['translations'][0]['text']
-                    return Response(200, txt)
-                elif resp.status_code == 403:
-                    return Response(403, interface.text('Errors', 'Invalid API key.'))
-                elif resp.status_code == 456:
-                    return Response(456, interface.text('Errors', 'Your quota has exceeded!'))
-                elif resp.status_code == 500:
-                    return Response(500,
-                                    interface.text('Errors', 'There was a temporary problem with the DeepL Service.'))
-                else:
-                    return Response(resp.status_code,
-                                    interface.text('Errors', 'Translation failed with error code: {}').format(
-                                        resp.status_code))
-            except Exception as e:
-                return Response(500, str(e))
-
-        return Response(404, interface.text('Errors', 'Language code not found!'))
 
 
 translator = Translator()

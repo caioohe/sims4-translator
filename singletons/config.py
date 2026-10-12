@@ -2,6 +2,8 @@
 
 import os
 import ctypes
+import copy
+import tempfile
 import ctypes.wintypes
 import xml.etree.ElementTree as ElementTree
 from xml.dom import minidom
@@ -11,6 +13,8 @@ from utils.constants import *
 
 
 def is_dark_theme():
+    if os.name != 'nt':
+        return False
     registry = ctypes.windll.advapi32
     hkey_current_user = 0x80000001
     sub_key = r'SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize'
@@ -64,7 +68,13 @@ class ConfigManager:
         },
         'api': {
             'engine': '',
-            'deepl_key': ''
+            'deepl_key': '',
+            'gemini_key': '',
+            'gemini_model': 'gemini-3.8-flash',
+            'google_interval': 2,
+            'microsoft_key': '',
+            'microsoft_region': '',
+            'batch_size': 50
         },
         'view': {
             'id': True,
@@ -81,8 +91,8 @@ class ConfigManager:
     }
 
     def __init__(self) -> None:
-        self.__config_file = './prefs/config.xml'
-        self.__config = self.DEFAULTS.copy()
+        self.__config_file = os.path.abspath('./prefs/config.xml')
+        self.__config = copy.deepcopy(self.DEFAULTS)
         self.__load()
 
     def __load(self) -> None:
@@ -103,8 +113,19 @@ class ConfigManager:
         reparsed = minidom.parseString(rough)
         prettyxml = reparsed.toprettyxml(indent='  ', encoding='utf-8')
 
-        with open(self.__config_file, 'wb') as fp:
-            fp.write(prettyxml)
+        os.makedirs(os.path.dirname(self.__config_file), exist_ok=True)
+        directory = os.path.dirname(self.__config_file)
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(dir=directory, prefix='.config-', delete=False) as fp:
+                temp_path = fp.name
+                fp.write(prettyxml)
+                fp.flush()
+                os.fsync(fp.fileno())
+            os.replace(temp_path, self.__config_file)
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                os.unlink(temp_path)
 
     def value(self, section: str, option: str) -> Union[str, int, bool, None]:
         return self.__config.get(section, {}).get(option)
@@ -121,7 +142,7 @@ class ConfigManager:
             section_name = section.tag
             for option in section:
                 option_name = option.tag
-                option_value = self.__convert_value(option.text)
+                option_value = (option.text or '') if (section_name == 'api' and option_name not in ('google_interval', 'batch_size')) else self.__convert_value(option.text)
                 if section_name not in self.__config:
                     self.__config[section_name] = {}
                 self.__config[section_name][option_name] = option_value

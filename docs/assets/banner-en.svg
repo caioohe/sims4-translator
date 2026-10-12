@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="280" viewBox="0 0 1200 280" role="img" aria-labelledby="title description">
+  <title id="title">The Sims 4 Translator — reliability fork</title>
+  <desc id="description">Translate mods, preserve variables and keep your progress.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101d2e"/><stop offset="1" stop-color="#173c40"/></linearGradient>
+  </defs>
+  <rect width="1200" height="280" rx="22" fill="url(#bg)"/>
+  <path d="M80 98h90a18 18 0 0 1 18 18v66a18 18 0 0 1-18 18h-48l-25 22v-22H80a18 18 0 0 1-18-18v-66a18 18 0 0 1 18-18Z" fill="#68dbc2"/>
+  <path d="M98 130h54M98 150h40M98 170h54" stroke="#123335" stroke-width="7" stroke-linecap="round"/>
+  <text x="228" y="95" font-family="Segoe UI,Arial,sans-serif" font-size="18" letter-spacing="3" fill="#8fe7d5">RELIABILITY FORK · WINDOWS</text>
+  <text x="224" y="154" font-family="Segoe UI,Arial,sans-serif" font-size="48" font-weight="700" fill="#fff">The Sims 4 Translator</text>
+  <text x="228" y="204" font-family="Segoe UI,Arial,sans-serif" font-size="24" fill="#c5dedf">Translate mods. Preserve variables. Keep your progress.</text>
+</svg>

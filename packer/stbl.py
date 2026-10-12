@@ -35,6 +35,8 @@ class Stbl:
         f.seek += 2
 
         _strings_length = f.get_uint32()
+        if num_entries > (f.raw_len - f.seek) // 7:
+            raise ValueError('Invalid STBL entry count')
 
         _strings = {}
 
@@ -72,6 +74,8 @@ class Stbl:
             f.put_uint32(key)
             f.put_int8(0)
             _value = value.encode('utf-8')
+            if len(_value) > 65535:
+                raise ValueError('STBL string exceeds 65535 UTF-8 bytes')
             f.put_uint16(len(_value))
             f.put_raw_bytes(_value)
 

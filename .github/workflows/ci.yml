@@ -1,0 +1,157 @@
+name: Tests and Windows build
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.12', '3.14']
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m pytest -q
+      - run: python -m compileall -q main.py singletons storages packer windows utils
+  build:
+    needs: test
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m PyInstaller --noconfirm --clean --windowed --onedir --name Sims4Translator main.py
+      - shell: pwsh
+        run: |
+          Copy-Item prefs dist/Sims4Translator/prefs -Recurse
+          Copy-Item fonts dist/Sims4Translator/fonts -Recurse
+          Copy-Item LICENSE dist/Sims4Translator/LICENSE
+          Copy-Item docs/WINDOWS.md dist/Sims4Translator/README-Windows.md
+          Copy-Item docs/MICROSOFT.md dist/Sims4Translator/MICROSOFT.md
+          Copy-Item docs/GEMINI_GOOGLE.md dist/Sims4Translator/GEMINI_GOOGLE.md
+          Copy-Item docs/releases/1.5-preview.1.md dist/Sims4Translator/RELEASE-NOTES.md
+          if (Test-Path dist/Sims4Translator/prefs/config.xml) { throw 'Private config included in build' }
+          if (Test-Path dist/Sims4Translator/prefs/recovery) { throw 'Private recovery included in build' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sims4Translator-Windows
+          path: dist/Sims4Translator/
+          retention-days: 14
+
+  publish_preview:
+    needs: build
+    # A single explicit release commit on this fork; ordinary PR updates do not publish.
+    if: github.event_name == 'pull_request' && github.repository == 'caioohe/sims4-translator' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'fix/translation-reliability'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Check explicit publication request
+        id: gate
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const {data: commit} = await github.rest.repos.getCommit({
+              ...context.repo, ref: context.payload.pull_request.head.sha
+            });
+            core.setOutput('publish', commit.commit.message.trim() === 'Release 1.5-preview.1' ? 'true' : 'false');
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.publish == 'true'
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        if: steps.gate.outputs.publish == 'true'
+        with:
+          name: Sims4Translator-Windows
+          path: release-build
+      - name: Validate and package the tested Windows build
+        if: steps.gate.outputs.publish == 'true'
+        shell: python
+        run: |
+          import ast, hashlib, pathlib, zipfile
+          root = pathlib.Path('release-build')
+          assert (root / 'Sims4Translator.exe').is_file()
+          assert (root / 'LICENSE').is_file()
+          assert not (root / 'prefs/config.xml').exists()
+          assert not (root / 'prefs/recovery').exists()
+          tree = ast.parse(pathlib.Path('utils/constants.py').read_text())
+          versions = [ast.literal_eval(node.value) for node in tree.body
+                      if isinstance(node, ast.Assign)
+                      and any(isinstance(t, ast.Name) and t.id == 'APP_VERSION' for t in node.targets)]
+          assert versions == ['1.5-preview.1']
+          name = 'Sims4Translator-1.5-preview.1-Windows-x64.zip'
+          with zipfile.ZipFile(name, 'w', zipfile.ZIP_DEFLATED) as archive:
+              for path in sorted(root.rglob('*')):
+                  if path.is_file():
+                      archive.write(path, path.relative_to(root).as_posix())
+          with zipfile.ZipFile(name) as archive:
+              assert archive.testzip() is None
+          digest = hashlib.sha256(pathlib.Path(name).read_bytes()).hexdigest()
+          pathlib.Path('SHA256SUMS.txt').write_text(f'{digest}  {name}\n')
+      - name: Publish preview with ZIP and checksum
+        if: steps.gate.outputs.publish == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const tag = 'v1.5-preview.1';
+            const existing = await github.paginate(github.rest.repos.listReleases, {...context.repo, per_page: 100});
+            if (existing.some(r => r.tag_name === tag)) {
+              throw new Error('Release already exists; refusing to replace existing assets or tags.');
+            }
+            try {
+              await github.rest.git.getRef({...context.repo, ref: `tags/${tag}`});
+              throw new Error('Tag already exists; refusing to move it.');
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+            const {data: release} = await github.rest.repos.createRelease({
+              ...context.repo, tag_name: tag,
+              target_commitish: context.payload.pull_request.head.sha,
+              name: 'The Sims 4 Translator 1.5-preview.1',
+              body: fs.readFileSync('docs/releases/1.5-preview.1.md', 'utf8'),
+              draft: true, prerelease: true
+            });
+            for (const name of ['Sims4Translator-1.5-preview.1-Windows-x64.zip', 'SHA256SUMS.txt']) {
+              const data = fs.readFileSync(name);
+              await github.rest.repos.uploadReleaseAsset({
+                ...context.repo, release_id: release.id, name, data,
+                headers: {'content-type': name.endsWith('.zip') ? 'application/zip' : 'text/plain', 'content-length': data.length}
+              });
+            }
+            const {data: published} = await github.rest.repos.updateRelease({
+              ...context.repo, release_id: release.id, draft: false, prerelease: true, make_latest: 'false'
+            });
+            core.info(`Published ${published.html_url}`);
