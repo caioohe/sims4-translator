@@ -38,14 +38,14 @@ As funções originais de dicionários, tradução manual, exportação para um 
 
 ## Baixar e executar
 
-1. Abra [GitHub Actions](https://github.com/caioohe/sims4-translator/actions/workflows/ci.yml) e selecione uma execução **bem-sucedida** da branch `fix/translation-reliability`.
-2. Na seção **Artifacts**, baixe **Sims4Translator-Windows**. É necessário estar conectado ao GitHub.
+1. Abra [Releases](https://github.com/caioohe/sims4-translator/releases/tag/v1.5-preview.1).
+2. Em **Assets**, baixe **Sims4Translator-1.5-preview.1-Windows-x64.zip**.
 3. Extraia **todo o ZIP** para uma pasta com permissão de escrita.
 4. Abra **`Sims4Translator.exe`**.
 
-Não copie apenas o executável: mantenha `_internal`, `prefs` e `fonts` junto dele. Os artifacts ficam disponíveis por **14 dias**; ainda não existe uma release estável deste fork.
+Escolha o ZIP Windows, não “Source code”. Mantenha `_internal`, `prefs` e `fonts` junto dele. **1.5-preview.1 é uma pré-release**, com [notas](docs/releases/1.5-preview.1.md) em inglês e PT-BR.
 
-**Build validado das integrações atuais:** [execução #5](https://github.com/caioohe/sims4-translator/actions/runs/38183900356), código `eecc409`.
+Builds de desenvolvimento continuam no [Actions](https://github.com/caioohe/sims4-translator/actions/workflows/ci.yml): execuções bem-sucedidas têm o artifact **Sims4Translator-Windows**, disponível por 14 dias e exigindo login no GitHub.
 
 ## Tradutores disponíveis
 

@@ -38,14 +38,14 @@ Original dictionaries, manual translation, separate package exports and finaliza
 
 ## Download and run
 
-1. Open [GitHub Actions](https://github.com/caioohe/sims4-translator/actions/workflows/ci.yml) and select a **successful** run for `fix/translation-reliability`.
-2. Under **Artifacts**, download **Sims4Translator-Windows**. You must be signed in to GitHub.
+1. Open [Releases](https://github.com/caioohe/sims4-translator/releases/tag/v1.5-preview.1).
+2. Under **Assets**, download **Sims4Translator-1.5-preview.1-Windows-x64.zip**.
 3. Extract the **entire ZIP** into a writable folder.
 4. Run **`Sims4Translator.exe`**.
 
-Keep `_internal`, `prefs` and `fonts` next to the executable. Artifacts are retained for **14 days**; this fork does not yet have a stable release.
+Choose the Windows ZIP, not “Source code”. Keep `_internal`, `prefs` and `fonts` next to the executable. **1.5-preview.1 is a pre-release**, with [release notes](docs/releases/1.5-preview.1.md) in English and PT-BR.
 
-**Validated build of the current integrations:** [run #5](https://github.com/caioohe/sims4-translator/actions/runs/38183900356), code `eecc409`.
+Development builds remain available in [Actions](https://github.com/caioohe/sims4-translator/actions/workflows/ci.yml): successful runs provide a **Sims4Translator-Windows** artifact, retained for 14 days and requiring GitHub sign-in.
 
 ## Translation providers
 
