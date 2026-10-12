@@ -34,3 +34,12 @@ controle de frequência Google e botão de teste Gemini. Consulte o PR para o ru
 Windows correspondente ao commit final; o run anterior não valida código novo.
 
 Microsoft Translator, configurações na aba Geral e salvamento das chaves: [MICROSOFT.md](MICROSOFT.md).
+
+## Microsoft, lotes e persistência — código eecc409
+
+146 testes passaram no Windows/Python 3.12 e 3.14; build PyInstaller aprovado na
+[execução #5](https://github.com/caioohe/sims4-translator/actions/runs/38183900356).
+Inclui HTTP Microsoft simulado, preservação de gênero/tokens, lotes de 100 textos
+Gemini/Microsoft e reabertura de configurações. Não confirma autenticação real,
+qualidade semântica nem resultado em mods pessoais. O relato de perda de chave no
+fechamento normal não foi reproduzido no computador do usuário.

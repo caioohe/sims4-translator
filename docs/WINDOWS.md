@@ -59,7 +59,8 @@ A gratuidade depende das regras/conta do GitHub; este workflow não configura co
 ## Retomar um mod grande
 
 1. Escolha idiomas, abra uma **cópia** do `.package` e selecione DeepL.
-2. Use tradução em lote; o modo multiline envia até 50 strings independentes.
+2. Use tradução em lote; o modo multiline permite de 1 a 100 textos para Gemini/Microsoft
+   (padrão 50), limitado a 50 no DeepL. O limite de caracteres continua valendo.
 3. Cada lote concluído é aplicado e salvo em `prefs/recovery/`. Em 456, revise a
    cota da conta; em 429 persistente, aguarde antes de retomar.
 4. Se o app continuar aberto, selecione “Everything but already validated strings”.
@@ -77,8 +78,8 @@ Se editar manualmente, salve seu dicionário antes de fechar para ele ter priori
 
 - Use uma chave válida para testar Free/Pro, idiomas e XML com o serviço real.
 - Teste um mod grande, Stop/Cancel/Esc, falha de conexão e retomada após fechar.
-- Verifique nomes, tags, quebras e textos de gênero no jogo. Conteúdo dentro de
-  `{M0...}`/`{F0...}` é preservado integralmente, não traduzido automaticamente.
+- Verifique nomes, tags, quebras e textos de gênero no jogo. Gemini e Microsoft traduzem o texto visível dentro de
+  `{M0...}`/`{F0...}` preservando sua estrutura; DeepL/Google/MyMemory mantêm a proteção anterior.
 - Verifique o pacote exportado no Sims 4 Studio e no jogo. Testes sintéticos não
   certificam todas as variantes DBPF/RefPack nem o conteúdo de mods reais.
 - Google continua dependendo de HTML não oficial. Se receber 429, aguarde ou
